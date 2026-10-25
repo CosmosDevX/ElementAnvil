@@ -157,6 +157,35 @@ try {
       const reply = await fetch(`http://127.0.0.1:${httpPort}/users/999`);
       assert.equal(reply.status, 404);
       assert.match(await reply.text(), /not found/);
+      const loaded = await post("requests/load");
+      const collection = loaded.collection;
+      collection.baseUrl = `http://127.0.0.1:${httpPort}`;
+      const create = collection.requests.find(
+        (request) => request.method === "POST",
+      );
+      create.query[0].value = "Ivan";
+      await post("requests/save", { collection });
+      const created = await post("requests/send", {
+        baseUrl: collection.baseUrl,
+        request: create,
+      });
+      assert.equal(created.status, 201, created.body);
+      const get = collection.requests.find(
+        (request) => request.method === "GET",
+      );
+      const found = await post("requests/send", {
+        baseUrl: collection.baseUrl,
+        request: get,
+      });
+      assert.equal(found.status, 200, found.body);
+      assert.equal(JSON.parse(found.body).name, "Ivan");
+      assert.equal(
+        (await post("requests/load")).collection.baseUrl,
+        collection.baseUrl,
+      );
+      console.log(
+        "PASS: HTTP client saves collections and creates/reads users through real Element server",
+      );
       await post("stop");
       while (true) {
         const { value, done } = await reader.read();

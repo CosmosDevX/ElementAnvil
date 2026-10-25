@@ -1,0 +1,313 @@
+.ut-http-workspace {
+  height: calc(100vh - 52px);
+  display: grid;
+  grid-template-columns: 265px minmax(0, 1fr);
+  grid-template-rows: 49px minmax(0, 1fr);
+  background: var(--editor);
+}
+.ut-http-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.ut-http-heading strong {
+  font-size: 13px;
+}
+#http-location {
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ut-http-heading button {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+.ut-http-collections {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+.ut-http-collection-tools {
+  display: flex;
+  gap: 8px;
+  padding: 14px 12px;
+}
+.ut-http-collection-tools button {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.ut-http-root {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  border-block: 1px solid var(--border);
+}
+#http-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-block: 6px;
+}
+.ut-http-folder,
+.ut-http-saved-request {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  min-height: 34px;
+  padding: 8px 12px;
+  gap: 9px;
+  font-size: 12px;
+}
+.ut-http-folder:hover,
+.ut-http-saved-request:hover {
+  background: var(--hover);
+}
+.ut-http-folder[aria-selected="true"],
+.ut-http-saved-request[aria-selected="true"] {
+  background: var(--selection);
+}
+.ut-http-saved-request > span:last-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ut-http-method {
+  color: var(--accent);
+  font: 9px var(--mono);
+  min-width: 37px;
+  flex-shrink: 0;
+}
+.ut-http-collection-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.ut-http-collection-footer button {
+  font-size: 11px;
+}
+#http-save-state {
+  width: 100%;
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 14px;
+}
+.ut-http-main {
+  overflow: auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 20px 24px;
+}
+.ut-http-workspace input:not([type="checkbox"]),
+.ut-http-workspace select,
+.ut-http-workspace textarea {
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 9px 10px;
+  font: 12px var(--mono);
+  min-width: 0;
+}
+.ut-http-workspace textarea {
+  resize: vertical;
+  width: 100%;
+  min-height: 130px;
+  margin-top: 8px;
+}
+.ut-http-workspace input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.ut-http-base {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ut-http-base label {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.ut-http-base input {
+  flex: 1;
+}
+.ut-http-request-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+#http-request-name {
+  flex: 1;
+  background: transparent;
+  border-color: transparent;
+  font: 15px var(--ui);
+  padding-left: 0;
+}
+#http-request-folder {
+  max-width: 220px;
+}
+.ut-http-url-row {
+  display: flex;
+  gap: 8px;
+}
+#http-method {
+  width: 103px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+#http-path {
+  flex: 1;
+}
+#http-send,
+#http-cancel {
+  padding: 8px 16px;
+}
+.ut-http-url-preview {
+  min-height: 28px;
+  padding: 8px 0;
+  color: var(--muted);
+  font: 11px var(--mono);
+  overflow-wrap: anywhere;
+}
+.ut-http-tabs {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 12px;
+}
+.ut-http-tabs button {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px 0;
+  border-bottom: 2px solid transparent;
+}
+.ut-http-tabs [aria-selected="true"],
+.ut-http-tabs .ut-selected {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+#http-parameter-area,
+#http-body-area {
+  padding: 14px 0 4px;
+}
+.ut-http-parameter-row {
+  display: grid;
+  grid-template-columns: 18px minmax(90px, 1fr) minmax(100px, 1.5fr) 28px;
+  gap: 8px;
+  margin-bottom: 7px;
+  align-items: center;
+}
+#http-add-parameter {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.ut-http-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+#http-query-options {
+  margin-bottom: 12px;
+}
+.ut-http-timeout {
+  margin-top: 10px;
+}
+#http-timeout {
+  width: 75px;
+  padding: 5px 8px;
+}
+.ut-http-empty {
+  padding: 28px 0 40px;
+  color: var(--muted);
+}
+.ut-http-response {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.ut-http-response-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 12px;
+}
+#http-response-meta {
+  color: var(--muted);
+  margin-left: auto;
+  font: 11px var(--mono);
+}
+.ut-http-status-ok {
+  color: #9acb96;
+}
+.ut-http-status-error {
+  color: #efaaa0;
+}
+.ut-http-pretty {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+#http-response-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 180px;
+  max-height: 55vh;
+  overflow: auto;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font: 12px/1.65 var(--mono);
+  margin-bottom: 0;
+}
+.ut-http-response-header {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 2fr);
+  gap: 15px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  font: 11px var(--mono);
+  overflow-wrap: anywhere;
+}
+.ut-http-response-header strong {
+  font-weight: normal;
+  color: var(--muted);
+}
+.ut-http-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 4px 0;
+}
+@media (max-width: 1000px) {
+  .ut-http-workspace {
+    grid-template-columns: 225px minmax(0, 1fr);
+  }
+  .ut-http-main {
+    padding: 16px;
+  }
+  .ut-http-tabs {
+    gap: 12px;
+  }
+  .ut-http-pretty {
+    font-size: 10px;
+  }
+}

@@ -3,6 +3,7 @@ import { setupProviders } from "./intelligence.js";
 import { fonts, applyAppearance } from "./appearance.js";
 import { Anomalies } from "./anomalies.js";
 import { PanelLayout } from "./layout.js";
+import { HttpClient } from "./http-client.js";
 
 const $ = (id) => document.getElementById(id);
 const models = new Map(),
@@ -16,6 +17,7 @@ let session,
   editor,
   anomalies,
   panels,
+  httpClient,
   currentName = null,
   selectedDirectory = "",
   consolePanel = "output",
@@ -147,6 +149,7 @@ async function assist(model, operation, p, extra = {}, token) {
   }
 }
 function showHome() {
+  $("http-workspace").classList.add("ut-hidden");
   document.title = "UnexploredEditor";
   anomalies?.end();
   $("workbench").classList.add("ut-hidden");
@@ -156,6 +159,7 @@ function showHome() {
   renderRecent();
 }
 function showWorkbench() {
+  $("http-workspace").classList.add("ut-hidden");
   $("home").classList.add("ut-hidden");
   $("workbench").classList.remove("ut-hidden");
   $("project-title").textContent = session.project.name;
@@ -199,6 +203,7 @@ async function projectAction(endpoint, data = {}) {
   if (projectBusy) return;
   projectBusy = true;
   try {
+    await httpClient?.flush();
     await saveAll();
     const result = await api(endpoint, data);
     if (result.cancelled) return;
@@ -428,6 +433,7 @@ async function closeFile(name) {
   renderTree();
 }
 function updateStatus() {
+  httpClient?.setProjectRunning(running);
   document.title = currentName
     ? `${basename(currentName)} — ${session.project?.name || ""} — UnexploredEditor`
     : "UnexploredEditor";
@@ -644,11 +650,24 @@ function settings(patch) {
     });
 }
 function bind() {
+  $("http-client-button").onclick = async () => {
+    try {
+      await httpClient.open();
+      anomalies.end();
+      $("home").classList.add("ut-hidden");
+      $("workbench").classList.add("ut-hidden");
+      $("http-workspace").classList.remove("ut-hidden");
+      httpClient.setProjectRunning(running);
+    } catch (error) {
+      report(error);
+    }
+  };
   for (const id of ["open-project", "home-open-folder"])
     $(id).onclick = () => projectAction("project/open");
   for (const id of ["open-file", "home-open-file"])
     $(id).onclick = () => projectAction("project/open-file");
-  $("home-button").onclick = () => saveAll().then(showHome).catch(report);
+  $("home-button").onclick = () =>
+    Promise.all([saveAll(), httpClient.flush()]).then(showHome).catch(report);
   $("return-project").onclick = showWorkbench;
   $("new-zig-project").onclick = () => newProject("zig");
   $("new-element-project").onclick = () => newProject("sbsl");
@@ -742,7 +761,7 @@ function bind() {
       } else if (ctrl && e.code === "KeyS") {
         e.preventDefault();
         e.stopPropagation();
-        saveAll().catch(report);
+        (httpClient?.visible ? httpClient.flush() : saveAll()).catch(report);
       } else if (
         e.key === "F5" &&
         !$("workbench").classList.contains("ut-hidden")
@@ -755,7 +774,7 @@ function bind() {
     true,
   );
   window.addEventListener("beforeunload", (e) => {
-    if (dirty.size) {
+    if (dirty.size || httpClient?.dirty) {
       e.preventDefault();
       e.returnValue = "";
     }
@@ -845,6 +864,17 @@ async function initialize() {
     api("layout", layout).catch(report),
   );
   $("app-version").textContent = session.version;
+  httpClient = new HttpClient({
+    api,
+    project: () => session.project,
+    report,
+    close: () => (session.project ? showWorkbench() : showHome()),
+    canRun: () =>
+      !!session.project &&
+      (!!session.project.entry ||
+        ["sbsl", "zig"].includes(languageOf(currentName))),
+    runProject: () => (running ? api("stop").catch(report) : run()),
+  });
   bind();
   renderSettings();
   showHome();

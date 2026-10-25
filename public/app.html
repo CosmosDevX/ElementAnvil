@@ -7,6 +7,7 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/shell.css" />
+    <link rel="stylesheet" href="/http-client.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -54,6 +55,13 @@
         Unexplored<span>Editor</span></button
       ><span id="project-title" class="ut-project-title"></span>
       <div class="ut-header-actions">
+        <button
+          id="http-client-button"
+          class="ut-text-button"
+          title="HTTP-клиент"
+        >
+          ⇄ HTTP
+        </button>
         <button
           id="open-project"
           class="ut-text-button"
@@ -119,6 +127,11 @@
         <p id="home-error" class="ut-error" role="alert"></p>
       </div>
     </section>
+    <section
+      id="http-workspace"
+      class="ut-http-workspace ut-hidden"
+      aria-label="HTTP-клиент"
+    ></section>
     <div id="workbench" class="ut-workbench ut-hidden">
       <aside id="explorer" class="ut-explorer">
         <div class="ut-explorer-heading">
