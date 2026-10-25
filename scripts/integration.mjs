@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
+import net from "node:net";
 import { ProjectManager } from "../lib/projects.mjs";
 const baseDirectory = path.resolve(".runtime");
 await mkdir(baseDirectory, { recursive: true });
@@ -35,6 +36,7 @@ async function post(endpoint, data = {}) {
 }
 try {
   assert.equal(session.project, null);
+  assert.equal(session.version, "0.2.0");
   assert.equal(session.settings.anomalies, false);
   const opened = await post("project/create", {
     name: "sample",
@@ -95,6 +97,12 @@ try {
   ).initialize();
   assert.equal(restored.state.settings.theme, "vim");
   console.log("PASS: settings persist independently of window port");
+  await post("layout", { explorerWidth: 320, consoleMode: "minimized" });
+  const panelState = await new ProjectManager(
+    process.env.UNDERTOW_DATA_DIR,
+  ).initialize();
+  assert.equal(panelState.state.layout.explorerWidth, 320);
+  assert.equal(panelState.state.layout.consoleMode, "minimized");
   if (session.element) {
     const source = await post("file/read", { path: "Скрипт.sbsl" });
     const result = await post("run", {
@@ -118,6 +126,51 @@ try {
       : response.result.items;
     assert.ok(items.some((i) => i.label.startsWith("Записать")));
     console.log("PASS: native Element completion in selected project");
+  }
+  if (session.element) {
+    const web = await post("project/create", {
+      name: "web-sample",
+      template: "sbsl-web",
+    });
+    projectId = web.project.id;
+    assert.equal(web.project.runMode, "server");
+    const probe = net.createServer();
+    await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
+    const httpPort = probe.address().port;
+    await new Promise((resolve) => probe.close(resolve));
+    const source = await post("file/read", { path: "Скрипт.sbsl" });
+    const response = await request("run", {
+      path: "Скрипт.sbsl",
+      text: source.text.replace("8080", String(httpPort)),
+      stream: true,
+    });
+    assert.ok(response.ok);
+    const reader = response.body.getReader();
+    let received = "";
+    try {
+      while (!received.includes("localhost:")) {
+        const { value, done } = await reader.read();
+        assert.equal(done, false, received);
+        received += new TextDecoder().decode(value);
+        assert.ok(!received.includes('"result"'), received);
+      }
+      const reply = await fetch(`http://127.0.0.1:${httpPort}/users/999`);
+      assert.equal(reply.status, 404);
+      assert.match(await reply.text(), /not found/);
+      await post("stop");
+      while (true) {
+        const { value, done } = await reader.read();
+        if (value) received += new TextDecoder().decode(value);
+        if (done) break;
+      }
+      assert.match(received, /"result"/);
+      console.log(
+        "PASS: upstream web template compiles, streams live output, serves HTTP, and stops",
+      );
+    } finally {
+      await post("stop");
+      await reader.cancel();
+    }
   }
   if (session.zig) {
     const zig = await post("project/create", {

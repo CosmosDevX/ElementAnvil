@@ -12,7 +12,6 @@ export class Anomalies {
     editor.onDidChangeCursorPosition(() => {
       this.input = Date.now();
     });
-    editor.onDidScrollChange(() => this.end());
     editor.onDidLayoutChange(() => this.end());
     editor.onDidChangeModel(() => this.end());
     document.addEventListener("visibilitychange", () => {
@@ -99,6 +98,8 @@ export class Anomalies {
     this.active = { frame: 0, decorations };
     this.last = Date.now();
     const begun = performance.now(),
+      scrollTop = editor.getScrollTop(),
+      scrollLeft = editor.getScrollLeft(),
       left = Math.max(start.left - 55, 50),
       right = Math.min(
         box.width - 55,
@@ -110,6 +111,12 @@ export class Anomalies {
         x = left + (right - left) * Math.min(t / 1.35, 1),
         y = start.top + 12;
       ctx.clearRect(0, 0, box.width, box.height);
+      ctx.save();
+      // Keep the particles anchored to their source line as the editor scrolls.
+      ctx.translate(
+        scrollLeft - editor.getScrollLeft(),
+        scrollTop - editor.getScrollTop(),
+      );
       ctx.font = `${font.fontSize}px ${font.fontFamily}`;
       for (const letter of letters) {
         const age = Math.max(
@@ -170,6 +177,7 @@ export class Anomalies {
         ctx.fillRect(3, -23, 3, 2);
         ctx.restore();
       }
+      ctx.restore();
       if (t >= 2.8) {
         this.end();
         return;

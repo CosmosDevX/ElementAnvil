@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Undertow</title>
+    <title>UnexploredEditor</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/shell.css" />
     <link
@@ -50,7 +51,7 @@
     </svg>
     <header class="ut-header">
       <button id="home-button" class="ut-brand" title="Начальное окно">
-        undertow<span>.</span></button
+        Unexplored<span>Editor</span></button
       ><span id="project-title" class="ut-project-title"></span>
       <div class="ut-header-actions">
         <button
@@ -98,6 +99,13 @@
             <span class="ut-lang-mark">Э</span
             ><span
               ><strong>1С:Элемент</strong><small>Скрипт и модуль</small></span
+            ><span class="ut-card-plus">＋</span>
+          </button>
+          <button id="new-web-project" class="ut-template-card">
+            <span class="ut-lang-mark">Э</span
+            ><span
+              ><strong>1С:Элемент · Веб-приложение</strong
+              ><small>HTTP-сервер и маршруты</small></span
             ><span class="ut-card-plus">＋</span>
           </button>
         </div>
@@ -160,6 +168,14 @@
           /
         </div>
       </aside>
+      <div
+        id="explorer-resizer"
+        class="ut-explorer-resizer"
+        role="separator"
+        aria-label="Ширина проводника"
+        aria-orientation="vertical"
+        tabindex="0"
+      ></div>
       <main class="ut-editor-main">
         <div class="ut-editor-tabs-row">
           <button
@@ -176,6 +192,14 @@
             role="tablist"
             aria-label="Открытые файлы"
           ></div>
+          <button
+            id="toggle-console"
+            class="ut-icon-button"
+            title="Показать или скрыть вывод · Ctrl+J"
+            aria-label="Показать или скрыть вывод"
+          >
+            ▤
+          </button>
         </div>
         <div class="ut-editor-toolbar">
           <span id="breadcrumb-file" class="ut-breadcrumb"></span>
@@ -212,13 +236,21 @@
             Открой файл в проводнике или создай новый.
           </div>
         </div>
-        <section class="ut-console" aria-label="Консоль">
+        <section id="console" class="ut-console" aria-label="Консоль">
+          <div
+            id="console-resizer"
+            class="ut-console-resizer"
+            role="separator"
+            aria-label="Высота панели вывода"
+            aria-orientation="horizontal"
+            tabindex="0"
+          ></div>
           <div class="ut-console-header">
             <div class="ut-console-tabs">
               <button id="output-tab" class="ut-console-tab ut-selected">
                 Вывод</button
               ><button id="problems-tab" class="ut-console-tab">
-                Проблемы <span id="problem-count">0</span>
+                Ошибки <span id="problem-count">0</span>
               </button>
             </div>
             <div class="ut-console-controls">
@@ -236,6 +268,30 @@
                 class="ut-icon-button"
                 title="Очистить"
                 aria-label="Очистить вывод"
+              >
+                ⌫
+              </button>
+              <button
+                id="minimize-console"
+                class="ut-icon-button"
+                title="Свернуть панель"
+                aria-label="Свернуть панель вывода"
+              >
+                −
+              </button>
+              <button
+                id="maximize-console"
+                class="ut-icon-button"
+                title="Развернуть панель"
+                aria-label="Развернуть панель вывода"
+              >
+                □
+              </button>
+              <button
+                id="close-console"
+                class="ut-icon-button"
+                title="Закрыть панель"
+                aria-label="Закрыть панель вывода"
               >
                 ×
               </button>
@@ -298,6 +354,9 @@
         Проверить аномалию
       </button>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
+      <p class="ut-version">
+        UnexploredEditor <span id="app-version">0.2.0</span>
+      </p>
     </dialog>
     <dialog id="create-project-dialog" class="ut-dialog">
       <form id="create-project-form">
@@ -315,7 +374,8 @@
         <label class="ut-setting-label" for="project-template">Шаблон</label
         ><select id="project-template">
           <option value="zig">Zig</option>
-          <option value="sbsl">1С:Элемент Скрипт</option></select
+          <option value="sbsl">1С:Элемент Скрипт</option>
+          <option value="sbsl-web">1С:Элемент · Веб-приложение</option></select
         ><label class="ut-setting-label" for="new-project-name">Название</label
         ><input
           id="new-project-name"

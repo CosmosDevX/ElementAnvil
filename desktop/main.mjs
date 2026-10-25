@@ -3,19 +3,34 @@ import { mkdir, readdir, copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 
-app.setName("Undertow");
+app.setName("UnexploredEditor");
+// Keep existing preferences and recent projects across the rename.
+app.setPath("userData", path.join(app.getPath("appData"), "Undertow"));
 if (process.env.UNDERTOW_DATA_DIR)
   app.setPath("userData", path.resolve(process.env.UNDERTOW_DATA_DIR));
 const singleInstance = app.requestSingleInstanceLock();
 let window, backend;
+const pendingFiles = [];
+function enqueueFiles(args, cwd = process.cwd()) {
+  for (const value of args) {
+    if (!value.startsWith("-") && /\.sbsl$/i.test(value))
+      pendingFiles.push(path.resolve(cwd, value));
+  }
+}
+enqueueFiles(process.argv.slice(app.isPackaged ? 1 : 2));
 if (!singleInstance) app.quit();
 else {
-  app.on("second-instance", () => {
+  app.on("second-instance", (_event, argv, cwd) => {
+    enqueueFiles(argv.slice(1), cwd);
     if (window) {
       if (window.isMinimized()) window.restore();
       window.show();
       window.focus();
     }
+  });
+  app.on("open-file", (event, filename) => {
+    event.preventDefault();
+    pendingFiles.push(filename);
   });
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => backend?.shutdown());
@@ -52,7 +67,8 @@ else {
       nativeTheme.themeSource = "dark";
       Menu.setApplicationMenu(null);
       window = new BrowserWindow({
-        title: "Undertow",
+        title: "UnexploredEditor",
+        icon: path.join(import.meta.dirname, "../build/icon.ico"),
         width: 1440,
         height: 940,
         minWidth: 900,
@@ -70,6 +86,8 @@ else {
         (contents, permission, callback) => callback(false),
       );
       backend.configureDesktop({
+        hasPendingFile: () => pendingFiles.length > 0,
+        nextFile: async () => pendingFiles.shift() || null,
         openFolder: async () => {
           const result = await dialog.showOpenDialog(window, {
             title: "Открыть проект",
@@ -121,7 +139,7 @@ else {
       await window.loadURL(origin);
     } catch (error) {
       dialog.showErrorBox(
-        "Undertow — ошибка запуска",
+        "UnexploredEditor — ошибка запуска",
         error.stack || error.message,
       );
       app.quit();

@@ -2,6 +2,7 @@ import { registerLanguages } from "./languages.js";
 import { setupProviders } from "./intelligence.js";
 import { fonts, applyAppearance } from "./appearance.js";
 import { Anomalies } from "./anomalies.js";
+import { PanelLayout } from "./layout.js";
 
 const $ = (id) => document.getElementById(id);
 const models = new Map(),
@@ -14,6 +15,7 @@ const models = new Map(),
 let session,
   editor,
   anomalies,
+  panels,
   currentName = null,
   selectedDirectory = "",
   consolePanel = "output",
@@ -81,6 +83,40 @@ async function api(endpoint, data = {}, signal) {
     throw new Error(result.error || `Ошибка ${response.status}`);
   return result;
 }
+async function streamRun(data) {
+  const response = await fetch("/api/run", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Session-Token": session.token,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error((await response.json()).error);
+  const reader = response.body.getReader(),
+    decoder = new TextDecoder();
+  let buffer = "",
+    result;
+  const consume = (line) => {
+    if (!line.trim()) return;
+    const item = JSON.parse(line);
+    if (item.error) throw new Error(item.error);
+    if (item.channel)
+      append(item.text, item.channel === "stderr" ? "ut-console-error" : "");
+    if (item.result) result = item.result;
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const lines = buffer.split("\n");
+    buffer = lines.pop();
+    for (const line of lines) consume(line);
+    if (done) break;
+  }
+  consume(buffer);
+  if (!result) throw new Error("Соединение с процессом прервано");
+  return result;
+}
 function projectData(data = {}) {
   return { projectId: session.project?.id, ...data };
 }
@@ -111,7 +147,7 @@ async function assist(model, operation, p, extra = {}, token) {
   }
 }
 function showHome() {
-  document.title = "Undertow";
+  document.title = "UnexploredEditor";
   anomalies?.end();
   $("workbench").classList.add("ut-hidden");
   $("home").classList.remove("ut-hidden");
@@ -124,6 +160,7 @@ function showWorkbench() {
   $("workbench").classList.remove("ut-hidden");
   $("project-title").textContent = session.project.name;
   $("project-title").title = session.project.root;
+  panels?.apply();
   editor.layout();
   editor.focus();
 }
@@ -292,6 +329,7 @@ async function openFile(name, provided) {
     models.set(name, model);
     model.onDidChangeContent(() => {
       dirty.add(name);
+      renderTabs();
       updateStatus();
       clearTimeout(saves.get(name));
       saves.set(
@@ -341,6 +379,7 @@ function renderTabs() {
       const mark = document.createElement("span");
       mark.className = "ut-dirty-mark";
       mark.textContent = "●";
+      mark.setAttribute("aria-label", "Не сохранён");
       tab.append(mark);
     }
     const close = document.createElement("button");
@@ -353,6 +392,14 @@ function renderTabs() {
     };
     tab.append(close);
     tab.onclick = () => openFile(name).catch(report);
+    tab.onmousedown = (event) => {
+      if (event.button === 1) event.preventDefault();
+    };
+    tab.onauxclick = (event) => {
+      if (event.button !== 1) return;
+      event.preventDefault();
+      closeFile(name).catch(report);
+    };
     tab.onkeydown = (e) => {
       if (e.key === "Enter") openFile(name).catch(report);
     };
@@ -360,8 +407,10 @@ function renderTabs() {
   }
 }
 async function closeFile(name) {
+  if (!models.has(name)) return;
   if (dirty.has(name)) await save(name);
   const model = models.get(name);
+  if (!model) return;
   models.delete(name);
   views.delete(name);
   model.dispose();
@@ -380,8 +429,8 @@ async function closeFile(name) {
 }
 function updateStatus() {
   document.title = currentName
-    ? `${basename(currentName)} — ${session.project?.name || ""} — Undertow`
-    : "Undertow";
+    ? `${basename(currentName)} — ${session.project?.name || ""} — UnexploredEditor`
+    : "UnexploredEditor";
   const model = editor?.getModel(),
     lang = model?.getLanguageId(),
     p = editor?.getPosition();
@@ -422,6 +471,7 @@ function updateStatus() {
     (!session.project.entry && !["zig", "sbsl"].includes(lang));
 }
 function selectConsole(panel) {
+  panels?.showConsole();
   consolePanel = panel;
   for (const name of ["output", "problems"]) {
     $(name).classList.toggle("ut-hidden", name !== panel);
@@ -515,9 +565,9 @@ async function run() {
     $("output").replaceChildren();
     append(`› ${name}`, "ut-console-subtle");
     $("run-meta").textContent = "Выполнение…";
-    const result = await api("run", projectData({ path: name, text }));
-    if (result.stdout) append(result.stdout.trimEnd());
-    if (result.stderr) append(result.stderr.trimEnd(), "ut-console-error");
+    const result = await streamRun(
+      projectData({ path: name, text, stream: true }),
+    );
     if (result.timedOut)
       append("Остановлено: лимит выполнения — 60 секунд.", "ut-console-error");
     if (result.limited)
@@ -538,7 +588,11 @@ async function run() {
 function newProject(template) {
   $("project-template").value = template;
   $("new-project-name").value =
-    template === "zig" ? "zig-project" : "element-project";
+    template === "zig"
+      ? "zig-project"
+      : template === "sbsl-web"
+        ? "element-web"
+        : "element-project";
   $("create-project-error").textContent = "";
   $("create-project-dialog").showModal();
   $("new-project-name").focus();
@@ -598,6 +652,7 @@ function bind() {
   $("return-project").onclick = showWorkbench;
   $("new-zig-project").onclick = () => newProject("zig");
   $("new-element-project").onclick = () => newProject("sbsl");
+  $("new-web-project").onclick = () => newProject("sbsl-web");
   $("create-project-form").onsubmit = (e) => {
     e.preventDefault();
     projectAction("project/create", {
@@ -635,8 +690,7 @@ function bind() {
     renderTree();
   };
   $("refresh-tree").onclick = () => refreshTree().catch(report);
-  $("toggle-files").onclick = () =>
-    $("workbench").classList.toggle("ut-no-explorer");
+  $("toggle-files").onclick = () => panels.toggleExplorer();
   $("save").onclick = () => save().catch(report);
   $("format").onclick = () =>
     editor.getAction("editor.action.formatDocument").run();
@@ -672,7 +726,12 @@ function bind() {
     "keydown",
     (e) => {
       const ctrl = e.ctrlKey || e.metaKey;
-      if (ctrl && e.code === "KeyO") {
+      if (ctrl && ["KeyB", "KeyJ"].includes(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.code === "KeyB") panels.toggleExplorer();
+        else panels.toggleConsole();
+      } else if (ctrl && e.code === "KeyO") {
         e.preventDefault();
         e.stopPropagation();
         projectAction(e.shiftKey ? "project/open" : "project/open-file");
@@ -728,7 +787,7 @@ async function initialize() {
     selectionHighlight: false,
     editContext: false,
     accessibilitySupport: "auto",
-    ariaLabel: "Редактор кода Undertow",
+    ariaLabel: "Редактор кода UnexploredEditor",
     fixedOverflowWidgets: true,
     quickSuggestions: { other: true, comments: false, strings: false },
     suggest: { showWords: false },
@@ -776,12 +835,16 @@ async function initialize() {
   });
   editor.addAction({
     id: "undertow-anomaly",
-    label: "Undertow: аномалия",
+    label: "UnexploredEditor: аномалия",
     keybindings: [
       monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyH,
     ],
     run: () => anomalies.trigger(),
   });
+  panels = new PanelLayout(editor, session.layout, (layout) =>
+    api("layout", layout).catch(report),
+  );
+  $("app-version").textContent = session.version;
   bind();
   renderSettings();
   showHome();
@@ -789,6 +852,17 @@ async function initialize() {
     $("tree-root").textContent = session.project.name;
     await refreshTree();
   }
+  if (session.desktop)
+    setInterval(async () => {
+      if (projectBusy || running || document.querySelector("dialog[open]"))
+        return;
+      try {
+        const events = await fetch("/api/desktop-events").then((r) => r.json());
+        if (events.pendingFile) await projectAction("project/open-pending");
+      } catch (error) {
+        report(error);
+      }
+    }, 800);
   for (const font of fonts)
     document.fonts.load(`14px "${font.family}"`, "AaАа").catch(() => {});
   setInterval(refreshDiagnostics, 1500);

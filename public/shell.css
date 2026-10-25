@@ -435,7 +435,7 @@ svg {
 }
 .ut-dirty-mark {
   font-size: 8px;
-  color: var(--accent);
+  color: #fff;
 }
 .ut-editor-toolbar {
   height: 43px;
@@ -865,4 +865,86 @@ svg {
     animation: none !important;
     transition: none !important;
   }
+}
+/* Persistent panel geometry overrides the compact-screen defaults. */
+.ut-workbench {
+  grid-template-columns: var(--explorer-width, 245px) 5px minmax(0, 1fr);
+}
+.ut-workbench.ut-no-explorer {
+  grid-template-columns: 0 0 minmax(0, 1fr);
+}
+.ut-workbench.ut-no-explorer .ut-explorer-resizer {
+  visibility: hidden;
+}
+.ut-workbench.ut-no-explorer .ut-explorer {
+  visibility: hidden;
+  border: none;
+}
+.ut-statusbar {
+  grid-column: 1 / -1;
+}
+.ut-explorer-resizer {
+  cursor: col-resize;
+  background: var(--panel);
+  touch-action: none;
+  z-index: 3;
+}
+.ut-explorer-resizer:hover,
+.ut-explorer-resizer:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+.ut-console {
+  position: relative;
+  min-height: 37px;
+  max-height: none;
+}
+.ut-console-resizer {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: row-resize;
+  touch-action: none;
+  z-index: 3;
+}
+.ut-console-resizer:hover,
+.ut-console-resizer:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+.ut-console-minimized .ut-console-body {
+  display: none;
+}
+.ut-console-body {
+  min-height: 0;
+}
+.ut-resizing,
+.ut-resizing * {
+  user-select: none !important;
+}
+.ut-file-tabs {
+  flex: 1;
+}
+#toggle-console {
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+.ut-version {
+  color: var(--muted);
+  font: 11px var(--mono);
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 18px;
+}
+.ut-brand {
+  font-size: 16px;
+  letter-spacing: -0.6px;
+}
+.ut-template-actions {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.ut-console-header {
+  padding-right: 8px;
 }

@@ -41,6 +41,53 @@ test("Both templates create runnable entry files and nested project trees", asyn
     ),
   );
 });
+test("Web template retains upstream application and supports idle server execution", async (t) => {
+  const { folder, manager } = await fixture(t);
+  const project = await manager.createProject(folder, "web", "sbsl-web");
+  assert.equal(project.entry, "Скрипт.sbsl");
+  assert.equal(project.runMode, "server");
+  for (const name of ["Скрипт.sbsl", "README.md"])
+    assert.equal(
+      (await manager.read(name)).text,
+      await readFile(
+        new URL(`../templates/element-web/${name}`, import.meta.url),
+        "utf8",
+      ),
+    );
+  assert.equal(
+    (await manager.read("ВебСервер.sbsl")).text,
+    (
+      await readFile(
+        new URL("../templates/element-web/ВебСервер.sbsl", import.meta.url),
+        "utf8",
+      )
+    ).replace("Сервер.ОжидатьСоединения(20с)", "Сервер.ОжидатьСоединения()"),
+  );
+});
+test("Panel geometry is bounded and survives restart", async (t) => {
+  const { manager } = await fixture(t);
+  await manager.layout({
+    explorerWidth: 330,
+    explorerHidden: true,
+    consoleHeight: 410,
+    consoleMode: "closed",
+  });
+  const next = await new ProjectManager(manager.dataDirectory).initialize();
+  assert.deepEqual(next.state.layout, {
+    explorerWidth: 330,
+    explorerHidden: true,
+    consoleHeight: 410,
+    consoleMode: "closed",
+  });
+  const bounded = await next.layout({
+    explorerWidth: -500,
+    consoleHeight: 99999,
+    consoleMode: "bad",
+  });
+  assert.equal(bounded.explorerWidth, 160);
+  assert.equal(bounded.consoleHeight, 1200);
+  assert.equal(bounded.consoleMode, "normal");
+});
 test("Edits affect original files, ordered saves retain newest text, create never overwrites", async (t) => {
   const { folder, manager } = await fixture(t);
   await manager.createProject(folder, "project", "sbsl");

@@ -1,15 +1,15 @@
 {
-  "name": "undertow-editor",
-  "version": "0.3.0",
+  "name": "unexplored-editor",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
-  "author": "Undertow",
-  "description": "A quiet code editor with something moving between the lines.",
+  "author": "CosmosDevX",
+  "description": "Desktop code editor for Zig and 1C Element",
   "scripts": {
     "start": "electron .",
     "start:web": "node server.mjs",
-    "build:win": "electron-builder --win portable --x64 --publish never",
+    "build:win": "electron-builder --win --x64 --publish never",
     "test": "node --test tests/*.test.mjs",
     "test:integration": "node scripts/integration.mjs",
     "fonts": "node scripts/bundle-fonts.mjs",
@@ -21,8 +21,8 @@
     "monaco-editor": "0.57.0"
   },
   "build": {
-    "appId": "local.undertow.editor",
-    "productName": "Undertow",
+    "appId": "dev.cosmosdevx.unexplorededitor",
+    "productName": "UnexploredEditor",
     "directories": {
       "output": "release"
     },
@@ -34,17 +34,40 @@
       "examples/**",
       "package.json",
       "node_modules/monaco-editor/min/**",
-      "node_modules/monaco-editor/LICENSE"
+      "node_modules/monaco-editor/LICENSE",
+      "templates/**",
+      "build/icon.ico"
     ],
     "asar": true,
     "compression": "store",
     "win": {
-      "target": "portable",
-      "artifactName": "Undertow-${version}-Windows.exe",
-      "signAndEditExecutable": false
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "UnexploredEditor-${version}-Portable.exe",
+      "signAndEditExecutable": true
     },
     "portable": {
       "requestExecutionLevel": "user"
+    },
+    "fileAssociations": [
+      {
+        "ext": "sbsl",
+        "name": "1С:Элемент Скрипт",
+        "description": "Исходный код 1С:Элемент",
+        "role": "Editor",
+        "icon": "build/icon.ico"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "UnexploredEditor-${version}-Setup.exe",
+      "shortcutName": "UnexploredEditor",
+      "createDesktopShortcut": true
     }
   },
   "devDependencies": {
