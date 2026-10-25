@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/shell.css" />
     <link rel="stylesheet" href="/http-client.css" />
+    <link rel="stylesheet" href="/document-tools.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -173,6 +174,14 @@
           role="tree"
           aria-label="Файлы проекта"
         ></div>
+        <details id="outline-section" class="ut-outline ut-hidden" open>
+          <summary>Структура файла</summary>
+          <div
+            id="element-outline"
+            class="ut-outline-tree"
+            aria-label="Структуры, поля и методы"
+          ></div>
+        </details>
         <div
           id="selected-folder"
           class="ut-selected-folder"
@@ -217,6 +226,13 @@
         <div class="ut-editor-toolbar">
           <span id="breadcrumb-file" class="ut-breadcrumb"></span>
           <div class="ut-editor-actions">
+            <button
+              id="markdown-preview-button"
+              class="ut-secondary ut-hidden"
+              aria-label="Просмотр Markdown"
+            >
+              Просмотр Markdown
+            </button>
             <span id="save-state" class="ut-save-state"></span
             ><button
               id="save"
@@ -244,6 +260,12 @@
         </div>
         <div id="editor-wrap" class="ut-editor-wrap">
           <div id="editor"></div>
+          <article
+            id="markdown-preview"
+            class="ut-markdown-preview ut-hidden"
+            aria-label="Просмотр Markdown"
+            tabindex="0"
+          ></article>
           <canvas id="haunting" aria-hidden="true"></canvas>
           <div id="empty-editor" class="ut-empty-editor">
             Открой файл в проводнике или создай новый.
@@ -360,6 +382,12 @@
       </div>
       <label class="ut-anomaly-setting"
         ><span
+          ><strong>Миникарта кода</strong
+          ><small>Обзор файла справа от кода</small></span
+        ><input id="minimap" type="checkbox" role="switch"
+      /></label>
+      <label class="ut-anomaly-setting"
+        ><span
           ><strong>Режим аномалий</strong
           ><small>Случайные появления во время работы</small></span
         ><input id="anomalies" type="checkbox" role="switch" /></label
@@ -368,7 +396,7 @@
       </button>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        UnexploredEditor <span id="app-version">0.2.0</span>
+        UnexploredEditor <span id="app-version">0.3.0</span>
       </p>
     </dialog>
     <dialog id="create-project-dialog" class="ut-dialog">

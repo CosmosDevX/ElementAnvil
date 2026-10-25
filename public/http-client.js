@@ -1,5 +1,3 @@
-import { requestUrl } from "./http-url.js";
-
 const $ = (id) => document.getElementById(id);
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const label = (tag, content, className) => {
@@ -32,14 +30,13 @@ export class HttpClient {
         <div class="ut-http-collection-footer"><button id="http-rename" class="ut-text-button" disabled>Переименовать</button><button id="http-delete" class="ut-text-button" disabled>Удалить</button><button id="http-undo" class="ut-text-button ut-hidden">Отменить удаление</button><span id="http-save-state" role="status"></span></div>
       </aside>
       <main class="ut-http-main">
-        <div class="ut-http-base"><label for="http-base-url">Базовый URL</label><input id="http-base-url" placeholder="http://127.0.0.1:8080" spellcheck="false" /></div>
+        <div class="ut-http-base"><label for="http-base-url">Базовый URL</label><input id="http-base-url" placeholder="Базовый URL" spellcheck="false" /></div>
         <div id="http-empty" class="ut-http-empty">Создай папку для эндпоинта и добавь запрос.</div>
         <section id="http-request-editor" class="ut-hidden" aria-label="Редактор HTTP-запроса">
           <div class="ut-http-request-name"><input id="http-request-name" aria-label="Название запроса" maxlength="120" /><select id="http-request-folder" aria-label="Папка запроса"></select></div>
-          <div class="ut-http-url-row"><select id="http-method" aria-label="Тип запроса">${["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].map((method) => `<option>${method}</option>`).join("")}</select><input id="http-path" aria-label="Путь или URL" placeholder="/users/{id}" spellcheck="false" /><button id="http-send" class="ut-primary" title="Отправить · Ctrl+Enter">Отправить</button><button id="http-cancel" class="ut-secondary ut-hidden">Отменить</button></div>
-          <div id="http-url-preview" class="ut-http-url-preview"></div>
+          <div class="ut-http-url-row"><select id="http-method" aria-label="Тип запроса">${["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].map((method) => `<option>${method}</option>`).join("")}</select><input id="http-path" aria-label="Путь или URL" placeholder="Путь или полный URL" spellcheck="false" /><button id="http-send" class="ut-primary" title="Отправить · Ctrl+Enter">Отправить</button><button id="http-cancel" class="ut-secondary ut-hidden">Отменить</button></div>
           <div class="ut-http-tabs" role="tablist" aria-label="Параметры запроса"><button role="tab" data-http-tab="pathParams">Параметры пути</button><button role="tab" data-http-tab="query">Параметры запроса</button><button role="tab" data-http-tab="headers">Заголовки</button><button role="tab" data-http-tab="body">Тело</button></div>
-          <div id="http-parameter-area"><div id="http-query-options" class="ut-hidden ut-http-options"><label for="http-query-separator">Разделитель параметров</label><select id="http-query-separator"><option value="&">&amp; — стандартный</option><option value=";">; — для прототипа Элемента</option></select></div><div id="http-parameters"></div><button id="http-add-parameter" class="ut-text-button">＋ Параметр</button></div>
+          <div id="http-parameter-area"><div id="http-query-options" class="ut-hidden ut-http-options"><label for="http-query-separator">Разделитель параметров</label><select id="http-query-separator"><option value="&">&amp; — стандартный</option><option value=";">; — совместимость</option></select></div><div id="http-parameters"></div><button id="http-add-parameter" class="ut-text-button">＋ Параметр</button></div>
           <div id="http-body-area" class="ut-hidden"><select id="http-body-type" aria-label="Тип тела запроса"><option value="none">Без тела</option><option value="json">JSON</option><option value="text">Текст</option></select><textarea id="http-request-body" aria-label="Тело запроса" spellcheck="false" placeholder='{"name": "Иван"}'></textarea></div>
           <div class="ut-http-options ut-http-timeout"><label for="http-timeout">Тайм-аут, сек</label><input id="http-timeout" type="number" min="1" max="120" value="30" /></div>
         </section>
@@ -72,7 +69,6 @@ export class HttpClient {
     $("http-base-url").oninput = () => {
       this.collection.baseUrl = $("http-base-url").value;
       this.changed();
-      this.preview();
     };
     for (const [elementId, key] of [
       ["http-request-name", "name"],
@@ -90,7 +86,6 @@ export class HttpClient {
         if (key === "name" || key === "method") this.renderTree();
         if (key === "bodyType") this.updateBody();
         this.changed();
-        this.preview();
       };
     }
     $("http-request-folder").onchange = () => {
@@ -322,7 +317,6 @@ export class HttpClient {
       addOptions(null);
       select.value = request.folderId || "";
       this.renderParameters();
-      this.preview();
     }
     this.renderResponse();
     this.busyState();
@@ -417,7 +411,6 @@ export class HttpClient {
       enabled.onchange = () => {
         row.enabled = enabled.checked;
         this.changed();
-        this.preview();
       };
       const key = document.createElement("input");
       key.placeholder = "Имя";
@@ -430,12 +423,10 @@ export class HttpClient {
       key.oninput = () => {
         row.key = key.value;
         this.changed();
-        this.preview();
       };
       value.oninput = () => {
         row.value = value.value;
         this.changed();
-        this.preview();
       };
       const remove = label("button", "×", "ut-icon-button");
       remove.setAttribute("aria-label", `Удалить параметр ${index + 1}`);
@@ -443,7 +434,6 @@ export class HttpClient {
         request[this.parameterTab].splice(index, 1);
         this.changed();
         this.renderParameters();
-        this.preview();
       };
       item.append(enabled, key, value, remove);
       area.append(item);
@@ -453,7 +443,7 @@ export class HttpClient {
         label(
           "p",
           this.parameterTab === "pathParams"
-            ? "Переменные из /users/{id} появятся здесь автоматически."
+            ? "Нет параметров пути."
             : "Параметров пока нет.",
           "ut-http-hint",
         ),
@@ -464,18 +454,6 @@ export class HttpClient {
     if (request)
       $("http-request-body").disabled =
         request.bodyType === "none" || ["GET", "HEAD"].includes(request.method);
-  }
-  preview() {
-    const request = this.request();
-    if (!request) return;
-    try {
-      $("http-url-preview").textContent = requestUrl(
-        this.collection.baseUrl,
-        request,
-      ).href;
-    } catch (error) {
-      $("http-url-preview").textContent = error.message;
-    }
   }
   busyState() {
     $("http-send").disabled = !!this.controller;

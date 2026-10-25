@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, copyFile } from "node:fs/promises";
 import path from "node:path";
 import net from "node:net";
 import { ProjectManager } from "../lib/projects.mjs";
@@ -36,13 +36,31 @@ async function post(endpoint, data = {}) {
 }
 try {
   assert.equal(session.project, null);
-  assert.equal(session.version, "0.2.0");
+  assert.equal(session.version, "0.3.0");
+  const markdownModule = await fetch(`${origin}/markdown/markdown-it.mjs`);
+  assert.match(markdownModule.headers.get("content-type"), /text\/javascript/);
   assert.equal(session.settings.anomalies, false);
   const opened = await post("project/create", {
     name: "sample",
     template: "sbsl",
   });
   projectId = opened.project.id;
+  await mkdir(path.join(opened.project.root, "assets"));
+  await copyFile(
+    "build/icon.png",
+    path.join(opened.project.root, "assets", "icon.png"),
+  );
+  const picture = await post("file/resource", { path: "assets/icon.png" });
+  assert.equal(picture.mime, "image/png");
+  assert.ok(
+    Buffer.from(picture.data, "base64").equals(
+      await readFile("build/icon.png"),
+    ),
+  );
+  assert.equal(
+    (await request("file/resource", { path: "../outside.png" })).status,
+    400,
+  );
   assert.equal(opened.project.entry, "Скрипт.sbsl");
   const tree = await post("tree");
   assert.ok(tree.entries.some((e) => e.name === "Модули"));

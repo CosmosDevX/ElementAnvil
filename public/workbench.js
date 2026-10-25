@@ -4,6 +4,9 @@ import { fonts, applyAppearance } from "./appearance.js";
 import { Anomalies } from "./anomalies.js";
 import { PanelLayout } from "./layout.js";
 import { HttpClient } from "./http-client.js";
+import { ElementOutline, registerElementSymbols } from "./element-outline.js";
+import { MarkdownPreview } from "./markdown-preview.js";
+import { markdownTarget } from "./markdown-path.js";
 
 const $ = (id) => document.getElementById(id);
 const models = new Map(),
@@ -18,6 +21,7 @@ let session,
   anomalies,
   panels,
   httpClient,
+  markdownPreview,
   currentName = null,
   selectedDirectory = "",
   consolePanel = "output",
@@ -205,6 +209,14 @@ async function projectAction(endpoint, data = {}) {
   try {
     await httpClient?.flush();
     await saveAll();
+    const createButton = $("create-project-form").querySelector(
+      '[type="submit"]',
+    );
+    if (endpoint === "project/create") {
+      createButton.disabled = true;
+      createButton.textContent =
+        data.template === "sbsl-web" ? "Клонирование…" : "Создание…";
+    }
     const result = await api(endpoint, data);
     if (result.cancelled) return;
     const changed = result.project.id !== session.project?.id;
@@ -243,6 +255,11 @@ async function projectAction(endpoint, data = {}) {
     report(error);
   } finally {
     projectBusy = false;
+    const createButton = $("create-project-form").querySelector(
+      '[type="submit"]',
+    );
+    createButton.disabled = false;
+    createButton.textContent = "Создать проект";
   }
 }
 async function refreshTree() {
@@ -626,6 +643,7 @@ function renderSettings() {
   $("font-size").value = session.settings.fontSize;
   $("font-size-value").textContent = `${session.settings.fontSize} px`;
   $("anomalies").checked = session.settings.anomalies;
+  $("minimap").checked = session.settings.minimap !== false;
   $("test-anomaly").classList.toggle("ut-hidden", !session.settings.anomalies);
   const font = fonts.find((f) => f.id === session.settings.font);
   $("font-preview").style.fontFamily = `'${font.family}',monospace`;
@@ -733,6 +751,7 @@ function bind() {
     settings({ fontSize: Number($("font-size").value) });
   $("anomalies").onchange = () =>
     settings({ anomalies: $("anomalies").checked });
+  $("minimap").onchange = () => settings({ minimap: $("minimap").checked });
   $("test-anomaly").onclick = () => {
     if (!currentName) {
       notice("Сначала открой файл.");
@@ -787,6 +806,7 @@ async function initialize() {
     window.require(["vs/editor/editor.main"], resolve, reject),
   );
   registerLanguages(monaco);
+  registerElementSymbols(monaco);
   setupProviders(monaco, {
     assist,
     serviceAvailable,
@@ -797,7 +817,7 @@ async function initialize() {
     fontSize: 14,
     lineHeight: 25,
     padding: { top: 18, bottom: 25 },
-    minimap: { enabled: false },
+    minimap: { enabled: session.settings.minimap !== false },
     scrollBeyondLastLine: false,
     tabSize: 4,
     insertSpaces: true,
@@ -820,6 +840,30 @@ async function initialize() {
     $("font-select").append(option);
   }
   applyAppearance(monaco, editor, session.settings);
+  new ElementOutline(editor, $("element-outline"));
+  markdownPreview = new MarkdownPreview(
+    editor,
+    $("markdown-preview"),
+    $("markdown-preview-button"),
+    async (href, image) => {
+      if (!session.project || !editor.getModel()) return;
+      const target = markdownTarget(session.project.uri, currentName, href);
+      if (target.external) {
+        if (!image) await api("external/open", { url: target.external });
+        return;
+      }
+      const relative = target.path;
+      if (image) {
+        const result = await api(
+          "file/resource",
+          projectData({ path: relative }),
+        );
+        if (image.isConnected)
+          image.src = `data:${result.mime};base64,${result.data}`;
+      } else await openFile(relative);
+    },
+    report,
+  );
   anomalies = new Anomalies(
     editor,
     monaco,

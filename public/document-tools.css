@@ -1,0 +1,146 @@
+.ut-outline {
+  flex-shrink: 1;
+  overflow: auto;
+  max-height: 48%;
+  min-height: 32px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.ut-outline > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  color: var(--muted);
+  user-select: none;
+}
+.ut-outline-tree {
+  padding: 0 8px 10px;
+  color: var(--muted);
+}
+.ut-outline-tree details {
+  margin-left: 3px;
+}
+.ut-outline-tree details > .ut-outline-symbol,
+.ut-outline-tree details > details {
+  margin-left: 14px;
+}
+.ut-outline-tree summary {
+  display: list-item;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ut-outline-symbol {
+  text-align: left;
+  max-width: calc(100% - 14px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 4px;
+  font: 11px var(--mono);
+  vertical-align: middle;
+}
+.ut-outline-tree > .ut-outline-symbol,
+.ut-outline-tree details > .ut-outline-symbol {
+  display: block;
+}
+.ut-outline-symbol:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.ut-outline-structure {
+  color: var(--accent);
+}
+.ut-outline-method {
+  color: var(--text);
+}
+.ut-outline-field {
+  color: var(--muted);
+}
+#markdown-preview-button {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.ut-preview-mode #editor,
+.ut-preview-mode #haunting {
+  visibility: hidden;
+}
+.ut-markdown-preview {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 28px clamp(24px, 5vw, 80px);
+  background: var(--editor);
+  color: var(--text);
+  font: 14px/1.8 var(--ui);
+  overflow-wrap: anywhere;
+}
+.ut-markdown-preview h1,
+.ut-markdown-preview h2,
+.ut-markdown-preview h3 {
+  line-height: 1.35;
+  margin: 1.3em 0 0.6em;
+}
+.ut-markdown-preview h1 {
+  font-size: 28px;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid var(--border);
+}
+.ut-markdown-preview h2 {
+  font-size: 22px;
+}
+.ut-markdown-preview h3 {
+  font-size: 17px;
+}
+.ut-markdown-preview > :first-child {
+  margin-top: 0;
+}
+.ut-markdown-preview a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.ut-markdown-preview a:hover {
+  text-decoration: underline;
+}
+.ut-markdown-preview pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  overflow: auto;
+  font: 12px/1.7 var(--mono);
+}
+.ut-markdown-preview code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+.ut-markdown-preview :not(pre) > code {
+  background: var(--raised);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.ut-markdown-preview blockquote {
+  border-left: 3px solid var(--accent);
+  margin-left: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+.ut-markdown-preview table {
+  border-collapse: collapse;
+  margin-block: 16px;
+}
+.ut-markdown-preview th,
+.ut-markdown-preview td {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+}
+.ut-markdown-preview th {
+  background: var(--panel);
+}
+.ut-markdown-preview hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin-block: 24px;
+}
+.ut-markdown-preview img {
+  max-width: 100%;
+  height: auto;
+}

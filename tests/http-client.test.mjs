@@ -187,7 +187,12 @@ test("Collections persist folders, requests and parameters separately for projec
   const projects = await new ProjectManager(
     path.join(directory, "profile"),
   ).initialize();
-  const project = await projects.createProject(directory, "web", "sbsl-web");
+  const initial = await projects.createProject(directory, "web", "sbsl");
+  await projects.save(
+    "unexplored.json",
+    JSON.stringify({ entry: "Скрипт.sbsl", runMode: "server" }),
+  );
+  const project = await projects.openFolder(initial.root);
   const store = new HttpCollections(projects, projects.dataDirectory);
   const collection = await store.load(project.id);
   collection.folders.push({

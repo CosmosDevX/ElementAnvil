@@ -86,6 +86,7 @@ else {
         (contents, permission, callback) => callback(false),
       );
       backend.configureDesktop({
+        openExternal: async (url) => openDocumentation(url),
         hasPendingFile: () => pendingFiles.length > 0,
         nextFile: async () => pendingFiles.shift() || null,
         openFolder: async () => {
@@ -118,10 +119,7 @@ else {
       const openDocumentation = (url) => {
         try {
           const link = new URL(url);
-          if (
-            link.protocol === "https:" &&
-            ["ziglang.org", "1cmycloud.com"].includes(link.hostname)
-          )
+          if (["https:", "http:"].includes(link.protocol))
             shell.openExternal(link.href);
         } catch {}
       };

@@ -112,6 +112,12 @@ export function applyAppearance(monaco, editor, settings) {
   });
   monaco.editor.setTheme("undertow");
   editor.updateOptions({
+    minimap: {
+      enabled: settings.minimap !== false,
+      renderCharacters: false,
+      maxColumn: 100,
+      showSlider: "mouseover",
+    },
     fontFamily: `'${font.family}', monospace`,
     fontSize: settings.fontSize,
     lineHeight: Math.round(
