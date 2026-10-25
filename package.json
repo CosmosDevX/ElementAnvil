@@ -1,0 +1,60 @@
+{
+  "name": "undertow-editor",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.mjs",
+  "author": "Undertow",
+  "description": "A quiet code editor with something moving between the lines.",
+  "scripts": {
+    "start": "electron .",
+    "start:web": "node server.mjs",
+    "build:win": "electron-builder --win portable --x64 --publish never",
+    "test": "node --test tests/*.test.mjs",
+    "test:integration": "node scripts/integration.mjs",
+    "fonts": "node scripts/bundle-fonts.mjs",
+    "verify:element": "node scripts/verify-element.mjs",
+    "prestart": "node node_modules/electron/install.js",
+    "format": "prettier --write \"{desktop,lib,public,scripts,tests}/**/*.{mjs,js,html,css}\" server.mjs package.json README.md"
+  },
+  "dependencies": {
+    "monaco-editor": "0.57.0"
+  },
+  "build": {
+    "appId": "local.undertow.editor",
+    "productName": "Undertow",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "desktop/**",
+      "public/**",
+      "lib/**",
+      "server.mjs",
+      "examples/**",
+      "package.json",
+      "node_modules/monaco-editor/min/**",
+      "node_modules/monaco-editor/LICENSE"
+    ],
+    "asar": true,
+    "compression": "store",
+    "win": {
+      "target": "portable",
+      "artifactName": "Undertow-${version}-Windows.exe",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    }
+  },
+  "devDependencies": {
+    "@fontsource/fira-code": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/press-start-2p": "^5.3.0",
+    "@fontsource/source-code-pro": "^5.3.1",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "prettier": "^3.9.10"
+  }
+}

@@ -1,0 +1,125 @@
+export const fonts = [
+  { id: "jetbrains-mono", name: "JetBrains Mono", family: "JetBrains Mono" },
+  { id: "fira-code", name: "Fira Code", family: "Fira Code" },
+  { id: "ibm-plex-mono", name: "IBM Plex Mono", family: "IBM Plex Mono" },
+  { id: "source-code-pro", name: "Source Code Pro", family: "Source Code Pro" },
+  {
+    id: "press-start-2p",
+    name: "Press Start 2P · пиксельный",
+    family: "Press Start 2P",
+  },
+];
+const palettes = {
+  dark: {
+    bg: "#191c22",
+    fg: "#d1d6df",
+    line: "#222833",
+    muted: "#5b6678",
+    keyword: "c6a0f6",
+    string: "a6d189",
+    number: "efbc90",
+    comment: "6d7c93",
+    type: "8bd5ca",
+    accent: "#c5b0ec",
+    widget: "#232833",
+    border: "#3b4454",
+    selection: "#424e6c66",
+  },
+  green: {
+    bg: "#151b16",
+    fg: "#c4cfb8",
+    line: "#1c271b",
+    muted: "#51644a",
+    keyword: "c5aa86",
+    string: "b5c591",
+    number: "c5a689",
+    comment: "62785a",
+    type: "a2bc98",
+    accent: "#d8b589",
+    widget: "#202a1e",
+    border: "#46553a",
+    selection: "#465a3755",
+  },
+  vim: {
+    bg: "#080b08",
+    fg: "#bfd5b3",
+    line: "#132011",
+    muted: "#486143",
+    keyword: "80c577",
+    string: "d2cb8a",
+    number: "b4d794",
+    comment: "597652",
+    type: "87b7a0",
+    accent: "#99d17e",
+    widget: "#101a0f",
+    border: "#3b5634",
+    selection: "#38583188",
+  },
+};
+export function applyAppearance(monaco, editor, settings) {
+  const p = palettes[settings.theme] || palettes.dark,
+    font = fonts.find((item) => item.id === settings.font) || fonts[0];
+  document.documentElement.dataset.theme = settings.theme;
+  monaco.editor.defineTheme("undertow", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      {
+        token: "comment",
+        foreground: p.comment,
+        fontStyle: settings.font === "press-start-2p" ? "" : "italic",
+      },
+      { token: "keyword", foreground: p.keyword },
+      { token: "type", foreground: p.type },
+      { token: "annotation", foreground: p.type },
+      { token: "string", foreground: p.string },
+      { token: "number", foreground: p.number },
+      { token: "identifier", foreground: p.fg.slice(1) },
+    ],
+    colors: {
+      "editor.background": p.bg,
+      "editor.foreground": p.fg,
+      "editorLineNumber.foreground": p.muted,
+      "editorLineNumber.activeForeground": p.fg,
+      "editor.lineHighlightBackground": p.line,
+      "editor.lineHighlightBorder": "#00000000",
+      "editorCursor.foreground": p.accent,
+      "editor.selectionBackground": p.selection,
+      "editor.inactiveSelectionBackground": p.selection,
+      "editorIndentGuide.background1": p.border + "66",
+      "editorIndentGuide.activeBackground1": p.border,
+      "editorWidget.background": p.widget,
+      "editorWidget.border": p.border,
+      "editorSuggestWidget.background": p.widget,
+      "editorSuggestWidget.border": p.border,
+      "editorSuggestWidget.foreground": p.fg,
+      "editorSuggestWidget.selectedBackground": p.line,
+      "editorSuggestWidget.selectedForeground": p.fg,
+      "editorSuggestWidget.highlightForeground": p.accent,
+      "editorSuggestWidget.focusHighlightForeground": p.accent,
+      "editorHoverWidget.background": p.widget,
+      "editorHoverWidget.border": p.border,
+      "editorHoverWidget.foreground": p.fg,
+      "editorGutter.background": p.bg,
+      "scrollbarSlider.background": p.border + "88",
+      "editorOverviewRuler.border": "#00000000",
+      "editorBracketMatch.background": p.line,
+      "editorBracketMatch.border": p.border,
+      "minimap.background": p.bg,
+      "editorError.foreground": "#d69d8a",
+      "editorWarning.foreground": "#c5b583",
+    },
+  });
+  monaco.editor.setTheme("undertow");
+  editor.updateOptions({
+    fontFamily: `'${font.family}', monospace`,
+    fontSize: settings.fontSize,
+    lineHeight: Math.round(
+      settings.fontSize * (settings.font === "press-start-2p" ? 2 : 1.8),
+    ),
+    fontLigatures: settings.font !== "press-start-2p",
+  });
+  document.fonts
+    .load(`${settings.fontSize}px "${font.family}"`)
+    .then(() => monaco.editor.remeasureFonts());
+}

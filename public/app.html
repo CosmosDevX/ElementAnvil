@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Undertow</title>
+    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="stylesheet" href="/shell.css" />
+    <link
+      rel="preload"
+      href="/fonts/jetbrains-mono-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body>
+    <svg class="ut-svg-library" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+          <path d="M3 6h7l2 3h9v11H3V6Z" />
+        </symbol>
+        <symbol id="i-file" viewBox="0 0 24 24">
+          <path d="M5 3h9l5 5v13H5V3Zm9 0v6h5" />
+        </symbol>
+        <symbol id="i-save" viewBox="0 0 24 24">
+          <path d="M4 3h13l4 4v14H4V3Zm4 0v7h9V3M8 21v-7h9v7" />
+        </symbol>
+        <symbol id="i-format" viewBox="0 0 24 24">
+          <path d="M4 5h16M8 10h12M8 15h8M4 20h16m-16-9-2 2 2 2" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24">
+          <path d="m8 5 11 7-11 7V5Z" />
+        </symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path
+            d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3H9Z"
+          />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol id="i-sidebar" viewBox="0 0 24 24">
+          <path d="M3 4h18v16H3V4Zm6 0v16" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24">
+          <path
+            d="M20 7v5h-5M4 17v-5h5M5 7a8 8 0 0 1 14 1M19 17a8 8 0 0 1-14-1"
+          />
+        </symbol>
+      </defs>
+    </svg>
+    <header class="ut-header">
+      <button id="home-button" class="ut-brand" title="Начальное окно">
+        undertow<span>.</span></button
+      ><span id="project-title" class="ut-project-title"></span>
+      <div class="ut-header-actions">
+        <button
+          id="open-project"
+          class="ut-text-button"
+          title="Открыть папку · Ctrl+Shift+O"
+        >
+          <svg><use href="#i-folder" /></svg>Открыть папку</button
+        ><button
+          id="open-file"
+          class="ut-text-button"
+          title="Открыть файл · Ctrl+O"
+        >
+          <svg><use href="#i-file" /></svg>Открыть файл</button
+        ><button
+          id="settings-button"
+          class="ut-icon-button"
+          title="Настройки · Ctrl+,"
+          aria-label="Настройки"
+        >
+          <svg><use href="#i-settings" /></svg>
+        </button>
+      </div>
+    </header>
+    <section id="home" class="ut-home">
+      <div class="ut-home-inner">
+        <h1>Начать работу</h1>
+        <div class="ut-start-actions">
+          <button id="home-open-folder" class="ut-start-card">
+            <svg><use href="#i-folder" /></svg><strong>Открыть папку</strong
+            ><span>Существующий проект</span></button
+          ><button id="home-open-file" class="ut-start-card">
+            <svg><use href="#i-file" /></svg><strong>Открыть файл</strong
+            ><span>Любой текстовый файл</span>
+          </button>
+        </div>
+        <h2>Новый проект</h2>
+        <div class="ut-template-actions">
+          <button id="new-zig-project" class="ut-template-card">
+            <span class="ut-lang-mark">Z</span
+            ><span
+              ><strong>Zig</strong><small>Исходник, сборка и тест</small></span
+            ><span class="ut-card-plus">＋</span></button
+          ><button id="new-element-project" class="ut-template-card">
+            <span class="ut-lang-mark">Э</span
+            ><span
+              ><strong>1С:Элемент</strong><small>Скрипт и модуль</small></span
+            ><span class="ut-card-plus">＋</span>
+          </button>
+        </div>
+        <section id="recent-section" class="ut-recents">
+          <h2>Недавние проекты</h2>
+          <div id="recent-list"></div>
+        </section>
+        <button id="return-project" class="ut-text-button ut-hidden">
+          Вернуться к проекту
+        </button>
+        <p id="home-error" class="ut-error" role="alert"></p>
+      </div>
+    </section>
+    <div id="workbench" class="ut-workbench ut-hidden">
+      <aside id="explorer" class="ut-explorer">
+        <div class="ut-explorer-heading">
+          <button
+            id="tree-root"
+            class="ut-root-name"
+            title="Выбрать корень проекта"
+          >
+            Проект
+          </button>
+          <div class="ut-tree-tools">
+            <button
+              id="new-file"
+              class="ut-icon-button"
+              title="Новый файл"
+              aria-label="Новый файл"
+            >
+              <svg><use href="#i-file" /></svg><span>+</span></button
+            ><button
+              id="new-folder"
+              class="ut-icon-button"
+              title="Новая папка"
+              aria-label="Новая папка"
+            >
+              <svg><use href="#i-folder" /></svg><span>+</span></button
+            ><button
+              id="refresh-tree"
+              class="ut-icon-button"
+              title="Обновить дерево"
+              aria-label="Обновить дерево"
+            >
+              <svg><use href="#i-refresh" /></svg>
+            </button>
+          </div>
+        </div>
+        <div
+          id="file-list"
+          class="ut-file-list"
+          role="tree"
+          aria-label="Файлы проекта"
+        ></div>
+        <div
+          id="selected-folder"
+          class="ut-selected-folder"
+          title="Папка для новых файлов"
+        >
+          /
+        </div>
+      </aside>
+      <main class="ut-editor-main">
+        <div class="ut-editor-tabs-row">
+          <button
+            id="toggle-files"
+            class="ut-icon-button"
+            title="Проводник"
+            aria-label="Показать или скрыть проводник"
+          >
+            <svg><use href="#i-sidebar" /></svg>
+          </button>
+          <div
+            id="tabs"
+            class="ut-file-tabs"
+            role="tablist"
+            aria-label="Открытые файлы"
+          ></div>
+        </div>
+        <div class="ut-editor-toolbar">
+          <span id="breadcrumb-file" class="ut-breadcrumb"></span>
+          <div class="ut-editor-actions">
+            <span id="save-state" class="ut-save-state"></span
+            ><button
+              id="save"
+              class="ut-icon-button"
+              title="Сохранить · Ctrl+S"
+              aria-label="Сохранить"
+            >
+              <svg><use href="#i-save" /></svg></button
+            ><button
+              id="format"
+              class="ut-icon-button"
+              title="Форматировать · Shift+Alt+F"
+              aria-label="Форматировать код"
+            >
+              <svg><use href="#i-format" /></svg></button
+            ><button
+              id="run"
+              class="ut-primary ut-run-button"
+              title="Запустить · F5"
+            >
+              <svg><use href="#i-play" /></svg><span>Запустить</span
+              ><kbd>F5</kbd>
+            </button>
+          </div>
+        </div>
+        <div id="editor-wrap" class="ut-editor-wrap">
+          <div id="editor"></div>
+          <canvas id="haunting" aria-hidden="true"></canvas>
+          <div id="empty-editor" class="ut-empty-editor">
+            Открой файл в проводнике или создай новый.
+          </div>
+        </div>
+        <section class="ut-console" aria-label="Консоль">
+          <div class="ut-console-header">
+            <div class="ut-console-tabs">
+              <button id="output-tab" class="ut-console-tab ut-selected">
+                Вывод</button
+              ><button id="problems-tab" class="ut-console-tab">
+                Проблемы <span id="problem-count">0</span>
+              </button>
+            </div>
+            <div class="ut-console-controls">
+              <span id="run-meta"></span
+              ><button
+                id="stop"
+                class="ut-icon-button"
+                title="Остановить"
+                aria-label="Остановить скрипт"
+                disabled
+              >
+                ■</button
+              ><button
+                id="clear-console"
+                class="ut-icon-button"
+                title="Очистить"
+                aria-label="Очистить вывод"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div id="output" class="ut-console-body"></div>
+          <div id="problems" class="ut-console-body ut-hidden"></div>
+        </section>
+      </main>
+      <footer class="ut-statusbar">
+        <span id="status-service"></span>
+        <div>
+          <span id="cursor-position"></span><span>UTF-8</span
+          ><span id="status-language"></span>
+        </div>
+      </footer>
+    </div>
+    <dialog id="settings-dialog" class="ut-dialog ut-settings-dialog">
+      <div class="ut-dialog-heading">
+        <h2>Настройки</h2>
+        <button
+          class="ut-icon-button"
+          data-close="settings-dialog"
+          aria-label="Закрыть настройки"
+        >
+          ×
+        </button>
+      </div>
+      <label class="ut-setting-label">Тема</label>
+      <div class="ut-theme-options">
+        <button data-theme-choice="dark" class="ut-theme-choice">
+          <i class="ut-swatch ut-swatch-dark"></i>Тёмная</button
+        ><button data-theme-choice="green" class="ut-theme-choice">
+          <i class="ut-swatch ut-swatch-green"></i>Зелёная</button
+        ><button data-theme-choice="vim" class="ut-theme-choice">
+          <i class="ut-swatch ut-swatch-vim"></i>Vim / консоль
+        </button>
+      </div>
+      <label class="ut-setting-label" for="font-select">Шрифт редактора</label
+      ><select id="font-select"></select>
+      <div class="ut-font-preview" id="font-preview">
+        const answer = 42;<br />пер Ответ = 42
+      </div>
+      <label class="ut-setting-label" for="font-size">Размер шрифта</label>
+      <div class="ut-size-row">
+        <input
+          id="font-size"
+          type="range"
+          min="10"
+          max="28"
+          value="14"
+        /><output id="font-size-value">14 px</output>
+      </div>
+      <label class="ut-anomaly-setting"
+        ><span
+          ><strong>Режим аномалий</strong
+          ><small>Случайные появления во время работы</small></span
+        ><input id="anomalies" type="checkbox" role="switch" /></label
+      ><button id="test-anomaly" class="ut-secondary ut-hidden">
+        Проверить аномалию
+      </button>
+      <p id="settings-save-state" class="ut-settings-save-state"></p>
+    </dialog>
+    <dialog id="create-project-dialog" class="ut-dialog">
+      <form id="create-project-form">
+        <div class="ut-dialog-heading">
+          <h2>Новый проект</h2>
+          <button
+            type="button"
+            class="ut-icon-button"
+            data-close="create-project-dialog"
+            aria-label="Закрыть"
+          >
+            ×
+          </button>
+        </div>
+        <label class="ut-setting-label" for="project-template">Шаблон</label
+        ><select id="project-template">
+          <option value="zig">Zig</option>
+          <option value="sbsl">1С:Элемент Скрипт</option></select
+        ><label class="ut-setting-label" for="new-project-name">Название</label
+        ><input
+          id="new-project-name"
+          required
+          maxlength="80"
+          autocomplete="off"
+        />
+        <p class="ut-form-hint">На следующем шаге выбери папку для проекта.</p>
+        <p id="create-project-error" class="ut-error" role="alert"></p>
+        <div class="ut-dialog-actions">
+          <button
+            type="button"
+            class="ut-secondary"
+            data-close="create-project-dialog"
+          >
+            Отмена</button
+          ><button type="submit" class="ut-primary">Создать проект</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="create-entry-dialog" class="ut-dialog">
+      <form id="create-entry-form">
+        <div class="ut-dialog-heading">
+          <h2 id="create-entry-title">Новый файл</h2>
+          <button
+            type="button"
+            class="ut-icon-button"
+            data-close="create-entry-dialog"
+            aria-label="Закрыть"
+          >
+            ×
+          </button>
+        </div>
+        <label class="ut-setting-label" for="entry-name">Имя</label
+        ><input id="entry-name" required maxlength="150" autocomplete="off" />
+        <p id="entry-parent" class="ut-form-hint"></p>
+        <p id="create-entry-error" class="ut-error" role="alert"></p>
+        <div class="ut-dialog-actions">
+          <button
+            type="button"
+            class="ut-secondary"
+            data-close="create-entry-dialog"
+          >
+            Отмена</button
+          ><button type="submit" class="ut-primary">Создать</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" class="ut-toast ut-hidden" role="status"></div>
+    <script src="/vendor/vs/loader.js"></script>
+    <script type="module" src="/workbench.js"></script>
+  </body>
+</html>
