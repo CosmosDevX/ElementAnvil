@@ -14,32 +14,6 @@
   --mono: "JetBrains Mono", Consolas, monospace;
   --ui: "Segoe UI", sans-serif;
 }
-:root[data-theme="green"] {
-  --bg: #111513;
-  --panel: #161c17;
-  --editor: #151b16;
-  --raised: #212b20;
-  --border: #303d2d;
-  --text: #c4cfb8;
-  --muted: #899d7c;
-  --accent: #d3ac7b;
-  --accent-bg: #3b3427;
-  --hover: #263122;
-  --selection: #303c29;
-}
-:root[data-theme="vim"] {
-  --bg: #060806;
-  --panel: #0c110b;
-  --editor: #080b08;
-  --raised: #132010;
-  --border: #2e4428;
-  --text: #bfd5b3;
-  --muted: #7e9e72;
-  --accent: #99d17e;
-  --accent-bg: #21371b;
-  --hover: #152610;
-  --selection: #243f1c;
-}
 * {
   box-sizing: border-box;
 }
@@ -689,22 +663,10 @@ svg {
   position: relative;
 }
 .ut-swatch:after {
-  content: "const answer = 42;";
+  content: "пер Ответ = 42";
   font: 8px/42px monospace;
   position: absolute;
   left: 9px;
-}
-.ut-swatch-dark {
-  background: #191c22;
-  color: #c6a0f6;
-}
-.ut-swatch-green {
-  background: #151b16;
-  color: #c5aa86;
-}
-.ut-swatch-vim {
-  background: #080b08;
-  color: #80c577;
 }
 .ut-font-preview {
   margin-top: 12px;

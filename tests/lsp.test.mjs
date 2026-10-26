@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MessageReader } from "../lib/lsp.mjs";
+import {
+  MessageReader,
+  LanguageServer,
+  documentKey,
+  replacementChange,
+} from "../lib/lsp.mjs";
+import path from "node:path";
 const frame = (message) => {
   const body = Buffer.from(JSON.stringify(message));
   return Buffer.concat([
@@ -33,4 +39,54 @@ test("Malformed headers and excessive responses fail predictably", () => {
       ),
     /большой/,
   );
+});
+
+test("Element diagnostic URIs match documents despite encoded drive letters", async () => {
+  const service = new LanguageServer({}, "sbsl", path.resolve(".runtime"));
+  const messages = [];
+  service.start = async () => {};
+  service.notify = (method, params) => messages.push({ method, params });
+  service.capabilities = { textDocumentSync: { change: 2 } };
+  const uri = await service.synchronize("Ошибка.sbsl", "пер Имя = 1\r\n😀");
+  const nativeUri =
+    process.platform === "win32"
+      ? uri.replace(
+          /\/([A-Z]):/,
+          (_, drive) => "/" + drive.toLowerCase() + "%3A",
+        )
+      : uri;
+  service.receive({
+    method: "textDocument/publishDiagnostics",
+    params: { uri: nativeUri, diagnostics: [{ message: "Ошибка" }] },
+  });
+  assert.equal(
+    service.diagnostics.get(documentKey(uri)).text,
+    "пер Имя = 1\r\n😀",
+  );
+  await service.synchronize("Ошибка.sbsl", "пер Имя = 2");
+  assert.equal(service.diagnostics.size, 0);
+  assert.deepEqual(messages.at(-1).params.contentChanges, [
+    replacementChange("пер Имя = 1\r\n😀", "пер Имя = 2"),
+  ]);
+  assert.deepEqual(messages.at(-1).params.contentChanges[0].range.end, {
+    line: 1,
+    character: 2,
+  });
+  service.receive({
+    method: "textDocument/publishDiagnostics",
+    params: {
+      uri: nativeUri,
+      version: 1,
+      diagnostics: [{ message: "Старое" }],
+    },
+  });
+  assert.equal(service.diagnostics.size, 0);
+  service.receive({
+    method: "textDocument/publishDiagnostics",
+    params: { uri: nativeUri, version: 2, diagnostics: [] },
+  });
+  assert.deepEqual(service.diagnostics.get(documentKey(uri)).diagnostics, []);
+  service.close("Ошибка.sbsl");
+  assert.equal(service.documents.size, 0);
+  assert.equal(messages.at(-1).method, "textDocument/didClose");
 });

@@ -26,12 +26,8 @@ async function fixture(t) {
   ).initialize();
   return { folder, manager };
 }
-test("Both templates create runnable entry files and nested project trees", async (t) => {
+test("Element template creates runnable entry files and nested project trees", async (t) => {
   const { folder, manager } = await fixture(t);
-  const zig = await manager.createProject(folder, "zig-app", "zig");
-  assert.equal(zig.entry, "src/main.zig");
-  assert.equal((await manager.list("src"))[0].path, "src/main.zig");
-  assert.match((await manager.read("build.zig")).text, /root_module/);
   const element = await manager.createProject(folder, "элемент", "sbsl");
   assert.equal(element.entry, "Скрипт.sbsl");
   assert.match(
@@ -144,14 +140,14 @@ test("Edits affect original files, ordered saves retain newest text, create neve
   await assert.rejects(manager.create("Новая папка/Файл.sbsl", "file"), {
     code: "EEXIST",
   });
-  await assert.rejects(manager.createProject(folder, "project", "zig"), {
+  await assert.rejects(manager.createProject(folder, "project", "sbsl"), {
     code: "EEXIST",
   });
   assert.equal((await manager.read("Новая папка/Файл.sbsl")).text, "новое");
 });
 test("Project boundaries, stale document ids, and junctions cannot redirect writes", async (t) => {
   const { folder, manager } = await fixture(t);
-  const first = await manager.createProject(folder, "first", "zig");
+  const first = await manager.createProject(folder, "first", "sbsl");
   for (const candidate of [
     "../outside",
     "C:/outside",
@@ -179,13 +175,13 @@ test("Project boundaries, stale document ids, and junctions cannot redirect writ
   );
   await manager.createProject(folder, "second", "sbsl");
   await assert.rejects(
-    manager.save("src/main.zig", "bad", first.id),
+    manager.save("Скрипт.sbsl", "bad", first.id),
     /Проект изменился/,
   );
 });
 test("Settings and recent projects survive a fresh application session", async (t) => {
   const { folder, manager } = await fixture(t);
-  const project = await manager.createProject(folder, "remember", "zig");
+  const project = await manager.createProject(folder, "remember", "sbsl");
   await manager.settings({
     theme: "vim",
     font: "press-start-2p",
@@ -205,9 +201,32 @@ test("Settings and recent projects survive a fresh application session", async (
   assert.equal(next.current, null);
   assert.equal((await next.settings({ fontSize: 400 })).fontSize, 28);
 });
+
+test("Six themes persist and legacy green settings migrate to forest", async (t) => {
+  const { manager } = await fixture(t);
+  for (const theme of [
+    "dark",
+    "amber",
+    "forest",
+    "vim",
+    "ocean",
+    "enterprise",
+  ]) {
+    await manager.settings({ theme });
+    const reopened = await new ProjectManager(
+      manager.dataDirectory,
+    ).initialize();
+    assert.equal(reopened.state.settings.theme, theme);
+  }
+  assert.equal((await manager.settings({ theme: "green" })).theme, "forest");
+  await assert.rejects(
+    manager.createProject(manager.dataDirectory, "unsupported", "zig"),
+    /1С:Элемент/,
+  );
+});
 test("Rejected external binary files leave the current project intact", async (t) => {
   const { folder, manager } = await fixture(t);
-  const project = await manager.createProject(folder, "current", "zig");
+  const project = await manager.createProject(folder, "current", "sbsl");
   const file = path.join(folder, "binary.dat");
   await writeFile(file, Buffer.from([1, 0, 2]));
   await assert.rejects(manager.openFile(file), /Бинарный/);

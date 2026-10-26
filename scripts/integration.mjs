@@ -219,23 +219,6 @@ try {
       await reader.cancel();
     }
   }
-  if (session.zig) {
-    const zig = await post("project/create", {
-      name: "zig-sample",
-      template: "zig",
-    });
-    projectId = zig.project.id;
-    const source = await post("file/read", { path: "src/main.zig" });
-    const result = await post("run", {
-      path: "src/main.zig",
-      text: source.text,
-    });
-    assert.equal(result.code, 0, result.stderr);
-    assert.match(result.stdout + result.stderr, /Hello, world!/);
-    console.log(
-      "PASS: actual Zig project build and run through application API",
-    );
-  }
   for (const font of [
     "jetbrains-mono",
     "fira-code",

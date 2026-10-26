@@ -1,3 +1,5 @@
+import { themes } from "./themes.js";
+import { projectFile } from "./document-uri.js";
 import { registerLanguages } from "./languages.js";
 import { setupProviders } from "./intelligence.js";
 import { fonts, applyAppearance } from "./appearance.js";
@@ -16,6 +18,7 @@ const models = new Map(),
   tree = new Map(),
   expanded = new Set(),
   problems = new Map();
+const diagnosticErrors = new Map();
 let session,
   editor,
   anomalies,
@@ -29,10 +32,10 @@ let session,
   projectBusy = false,
   running = false,
   diagnosticBusy = false,
+  diagnosticTimer,
   toastTimer,
   settingsQueue = Promise.resolve();
 const languages = {
-  zig: "zig",
   sbsl: "sbsl",
   json: "json",
   md: "markdown",
@@ -52,11 +55,7 @@ const languageOf = (name) =>
   languages[name?.split(".").at(-1)?.toLowerCase()] || "plaintext";
 const basename = (name) => name?.split("/").at(-1) || "";
 const serviceAvailable = (language) =>
-  language === "sbsl"
-    ? session.elementLsp
-    : language === "zig"
-      ? session.zls
-      : false;
+  language === "sbsl" && session.elementLsp;
 function notice(message) {
   $("toast").textContent = message;
   $("toast").classList.remove("ut-hidden");
@@ -231,6 +230,7 @@ async function projectAction(endpoint, data = {}) {
       tree.clear();
       expanded.clear();
       problems.clear();
+      diagnosticErrors.clear();
       currentName = null;
       selectedDirectory = "";
       editor.setModel(null);
@@ -298,11 +298,9 @@ function renderTree() {
       icon.textContent =
         item.kind === "directory"
           ? "▱"
-          : languageOf(item.path) === "zig"
-            ? "Z"
-            : languageOf(item.path) === "sbsl"
-              ? "Э"
-              : "·";
+          : languageOf(item.path) === "sbsl"
+            ? "Э"
+            : "·";
       const label = document.createElement("span");
       label.className = "ut-tree-label";
       label.textContent = item.name;
@@ -351,6 +349,11 @@ async function openFile(name, provided) {
     models.set(name, model);
     model.onDidChangeContent(() => {
       dirty.add(name);
+      problems.delete(name);
+      diagnosticErrors.delete(name);
+      monaco.editor.setModelMarkers(model, "native-lsp", []);
+      if (currentName === name) renderProblems();
+      scheduleDiagnostics();
       renderTabs();
       updateStatus();
       clearTimeout(saves.get(name));
@@ -433,7 +436,11 @@ async function closeFile(name) {
   if (dirty.has(name)) await save(name);
   const model = models.get(name);
   if (!model) return;
+  if (serviceAvailable(model.getLanguageId()))
+    await assist(model, "close").catch(() => {});
   models.delete(name);
+  problems.delete(name);
+  diagnosticErrors.delete(name);
   views.delete(name);
   model.dispose();
   if (name === currentName) {
@@ -469,29 +476,21 @@ function updateStatus() {
   $("status-language").textContent =
     lang === "sbsl"
       ? "1С:Элемент"
-      : lang === "zig"
-        ? "Zig"
-        : lang && lang !== "plaintext"
-          ? lang
-          : currentName
-            ? "Текст"
-            : "";
+      : lang && lang !== "plaintext"
+        ? lang
+        : currentName
+          ? "Текст"
+          : "";
   $("status-service").textContent =
     lang === "sbsl"
       ? session.elementLsp
         ? "Элемент · LSP"
         : "Элемент · базовые подсказки"
-      : lang === "zig"
-        ? session.zls
-          ? "Zig · ZLS"
-          : "Zig · базовые подсказки"
-        : "";
+      : "";
   $("format").disabled = !model || !serviceAvailable(lang);
   $("save").disabled = !model;
   $("run").disabled =
-    running ||
-    !session.project ||
-    (!session.project.entry && !["zig", "sbsl"].includes(lang));
+    running || !session.project || (!session.project.entry && lang !== "sbsl");
 }
 function selectConsole(panel) {
   panels?.showConsole();
@@ -509,9 +508,15 @@ function renderProblems() {
   if (!items.length) {
     const message = document.createElement("span");
     message.className = "ut-console-subtle";
-    message.textContent = problems.has(currentName)
-      ? "Нет замечаний."
-      : "Фоновая диагностика пока недоступна. Ошибки запуска — во вкладке «Вывод».";
+    message.textContent =
+      diagnosticErrors.get(currentName) ||
+      (problems.has(currentName)
+        ? "Нет замечаний."
+        : languageOf(currentName) !== "sbsl"
+          ? "Для этого файла проверка ошибок не подключена."
+          : !session.elementLsp
+            ? "Языковой сервер Элемента не найден."
+            : "Проверка кода…");
     list.append(message);
     return;
   }
@@ -529,6 +534,10 @@ function renderProblems() {
     };
     list.append(button);
   }
+}
+function scheduleDiagnostics() {
+  clearTimeout(diagnosticTimer);
+  diagnosticTimer = setTimeout(refreshDiagnostics, 250);
 }
 async function refreshDiagnostics() {
   if (
@@ -550,6 +559,8 @@ async function refreshDiagnostics() {
       result === null
     )
       return;
+    diagnosticErrors.delete(name);
+    if (JSON.stringify(problems.get(name)) === JSON.stringify(result)) return;
     problems.set(name, result);
     monaco.editor.setModelMarkers(
       model,
@@ -564,7 +575,11 @@ async function refreshDiagnostics() {
       })),
     );
     if (currentName === name) renderProblems();
-  } catch {
+  } catch (error) {
+    if (!model.isDisposed()) {
+      diagnosticErrors.set(name, `Проверка кода недоступна: ${error.message}`);
+      if (currentName === name) renderProblems();
+    }
   } finally {
     diagnosticBusy = false;
   }
@@ -611,11 +626,7 @@ async function run() {
 function newProject(template) {
   $("project-template").value = template;
   $("new-project-name").value =
-    template === "zig"
-      ? "zig-project"
-      : template === "sbsl-web"
-        ? "element-web"
-        : "element-project";
+    template === "sbsl-web" ? "element-web" : "element-project";
   $("create-project-error").textContent = "";
   $("create-project-dialog").showModal();
   $("new-project-name").focus();
@@ -687,7 +698,6 @@ function bind() {
   $("home-button").onclick = () =>
     Promise.all([saveAll(), httpClient.flush()]).then(showHome).catch(report);
   $("return-project").onclick = showWorkbench;
-  $("new-zig-project").onclick = () => newProject("zig");
   $("new-element-project").onclick = () => newProject("sbsl");
   $("new-web-project").onclick = () => newProject("sbsl-web");
   $("create-project-form").onsubmit = (e) => {
@@ -833,6 +843,17 @@ async function initialize() {
     wordBasedSuggestions: "off",
     scrollbar: { verticalScrollbarSize: 7, horizontalScrollbarSize: 7 },
   });
+  for (const [id, palette] of Object.entries(themes)) {
+    const button = document.createElement("button");
+    button.className = "ut-theme-choice";
+    button.dataset.themeChoice = id;
+    const swatch = document.createElement("i");
+    swatch.className = "ut-swatch";
+    swatch.style.background = palette.bg;
+    swatch.style.color = "#" + palette.keyword;
+    button.append(swatch, palette.name);
+    $("theme-options").append(button);
+  }
   for (const font of fonts) {
     const option = document.createElement("option");
     option.value = font.id;
@@ -878,10 +899,19 @@ async function initialize() {
   monaco.editor.registerEditorOpener({
     async openCodeEditor(source, resource, selection) {
       if (!session.project) return false;
-      const root = monaco.Uri.parse(session.project.uri).path;
-      if (!resource.path.startsWith(root)) return false;
       try {
-        await openFile(resource.path.slice(root.length));
+        const relative = projectFile(
+          session.project.uri,
+          resource.toString(),
+          session.platform === "win32",
+        );
+        if (!relative) return false;
+        const existing = [...models.keys()].find((name) =>
+          session.platform === "win32"
+            ? name.toLowerCase() === relative.toLowerCase()
+            : name === relative,
+        );
+        await openFile(existing || relative);
         if (selection?.startLineNumber) {
           editor.setSelection(selection);
           editor.revealLineInCenter(selection.startLineNumber);
@@ -895,6 +925,14 @@ async function initialize() {
         return false;
       }
     },
+  });
+  editor.addAction({
+    id: "unexplored-go-to-definition",
+    label: "Перейти к определению",
+    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12],
+    precondition: "editorTextFocus && editorLangId == sbsl",
+    contextMenuGroupId: "navigation",
+    run: () => editor.trigger("keyboard", "editor.action.revealDefinition", {}),
   });
   editor.addAction({
     id: "undertow-anomaly",
@@ -915,8 +953,7 @@ async function initialize() {
     close: () => (session.project ? showWorkbench() : showHome()),
     canRun: () =>
       !!session.project &&
-      (!!session.project.entry ||
-        ["sbsl", "zig"].includes(languageOf(currentName))),
+      (!!session.project.entry || languageOf(currentName) === "sbsl"),
     runProject: () => (running ? api("stop").catch(report) : run()),
   });
   bind();
@@ -939,7 +976,7 @@ async function initialize() {
     }, 800);
   for (const font of fonts)
     document.fonts.load(`14px "${font.family}"`, "AaАа").catch(() => {});
-  setInterval(refreshDiagnostics, 1500);
+  setInterval(refreshDiagnostics, 600);
 }
 initialize().catch((error) => {
   $("home-error").textContent = `Ошибка запуска: ${error.message}`;

@@ -81,7 +81,7 @@ export function setupProviders(monaco, { assist, serviceAvailable, event }) {
     nativeItems.set(value, { item, model, p });
     return value;
   }
-  for (const language of ["zig", "sbsl"]) {
+  for (const language of ["sbsl"]) {
     monaco.languages.registerCompletionItemProvider(language, {
       triggerCharacters: [".", "@", ":"],
       async provideCompletionItems(model, p, context, token) {
@@ -222,7 +222,7 @@ export function setupProviders(monaco, { assist, serviceAvailable, event }) {
             text: edit.newText,
           }));
         } catch (error) {
-          notice(error.message);
+          event(error.message);
           return [];
         }
       },

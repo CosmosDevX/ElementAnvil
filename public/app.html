@@ -99,12 +99,7 @@
         </div>
         <h2>Новый проект</h2>
         <div class="ut-template-actions">
-          <button id="new-zig-project" class="ut-template-card">
-            <span class="ut-lang-mark">Z</span
-            ><span
-              ><strong>Zig</strong><small>Исходник, сборка и тест</small></span
-            ><span class="ut-card-plus">＋</span></button
-          ><button id="new-element-project" class="ut-template-card">
+          <button id="new-element-project" class="ut-template-card">
             <span class="ut-lang-mark">Э</span
             ><span
               ><strong>1С:Элемент</strong><small>Скрипт и модуль</small></span
@@ -356,19 +351,11 @@
         </button>
       </div>
       <label class="ut-setting-label">Тема</label>
-      <div class="ut-theme-options">
-        <button data-theme-choice="dark" class="ut-theme-choice">
-          <i class="ut-swatch ut-swatch-dark"></i>Тёмная</button
-        ><button data-theme-choice="green" class="ut-theme-choice">
-          <i class="ut-swatch ut-swatch-green"></i>Зелёная</button
-        ><button data-theme-choice="vim" class="ut-theme-choice">
-          <i class="ut-swatch ut-swatch-vim"></i>Vim / консоль
-        </button>
-      </div>
+      <div class="ut-theme-options" id="theme-options"></div>
       <label class="ut-setting-label" for="font-select">Шрифт редактора</label
       ><select id="font-select"></select>
       <div class="ut-font-preview" id="font-preview">
-        const answer = 42;<br />пер Ответ = 42
+        пер Ответ = 42<br />Консоль.Записать(Ответ)
       </div>
       <label class="ut-setting-label" for="font-size">Размер шрифта</label>
       <div class="ut-size-row">
@@ -414,7 +401,6 @@
         </div>
         <label class="ut-setting-label" for="project-template">Шаблон</label
         ><select id="project-template">
-          <option value="zig">Zig</option>
           <option value="sbsl">1С:Элемент Скрипт</option>
           <option value="sbsl-web">1С:Элемент · Веб-приложение</option></select
         ><label class="ut-setting-label" for="new-project-name">Название</label

@@ -1,3 +1,4 @@
+import { themes as palettes, themeId } from "./themes.js";
 export const fonts = [
   { id: "jetbrains-mono", name: "JetBrains Mono", family: "JetBrains Mono" },
   { id: "fira-code", name: "Fira Code", family: "Fira Code" },
@@ -9,59 +10,28 @@ export const fonts = [
     family: "Press Start 2P",
   },
 ];
-const palettes = {
-  dark: {
-    bg: "#191c22",
-    fg: "#d1d6df",
-    line: "#222833",
-    muted: "#5b6678",
-    keyword: "c6a0f6",
-    string: "a6d189",
-    number: "efbc90",
-    comment: "6d7c93",
-    type: "8bd5ca",
-    accent: "#c5b0ec",
-    widget: "#232833",
-    border: "#3b4454",
-    selection: "#424e6c66",
-  },
-  green: {
-    bg: "#151b16",
-    fg: "#c4cfb8",
-    line: "#1c271b",
-    muted: "#51644a",
-    keyword: "c5aa86",
-    string: "b5c591",
-    number: "c5a689",
-    comment: "62785a",
-    type: "a2bc98",
-    accent: "#d8b589",
-    widget: "#202a1e",
-    border: "#46553a",
-    selection: "#465a3755",
-  },
-  vim: {
-    bg: "#080b08",
-    fg: "#bfd5b3",
-    line: "#132011",
-    muted: "#486143",
-    keyword: "80c577",
-    string: "d2cb8a",
-    number: "b4d794",
-    comment: "597652",
-    type: "87b7a0",
-    accent: "#99d17e",
-    widget: "#101a0f",
-    border: "#3b5634",
-    selection: "#38583188",
-  },
-};
 export function applyAppearance(monaco, editor, settings) {
-  const p = palettes[settings.theme] || palettes.dark,
+  const p = palettes[themeId(settings.theme)],
     font = fonts.find((item) => item.id === settings.font) || fonts[0];
-  document.documentElement.dataset.theme = settings.theme;
+  document.documentElement.dataset.theme = themeId(settings.theme);
+  document.documentElement.style.colorScheme = p.light ? "light" : "dark";
+  const variables = {
+    bg: p.shell,
+    panel: p.panel,
+    editor: p.bg,
+    raised: p.widget,
+    border: p.border,
+    text: p.fg,
+    muted: p.muted,
+    accent: p.accent,
+    "accent-bg": p.accentBg,
+    hover: p.line,
+    selection: p.selection,
+  };
+  for (const [name, value] of Object.entries(variables))
+    document.documentElement.style.setProperty("--" + name, value);
   monaco.editor.defineTheme("undertow", {
-    base: "vs-dark",
+    base: p.light ? "vs" : "vs-dark",
     inherit: true,
     rules: [
       {
@@ -106,8 +76,8 @@ export function applyAppearance(monaco, editor, settings) {
       "editorBracketMatch.background": p.line,
       "editorBracketMatch.border": p.border,
       "minimap.background": p.bg,
-      "editorError.foreground": "#d69d8a",
-      "editorWarning.foreground": "#c5b583",
+      "editorError.foreground": p.light ? "#b52c37" : "#ee7c82",
+      "editorWarning.foreground": p.light ? "#956409" : "#e3ba68",
     },
   });
   monaco.editor.setTheme("undertow");

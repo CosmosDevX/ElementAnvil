@@ -221,6 +221,6 @@ test("Collections persist folders, requests and parameters separately for projec
   const invalid = structuredClone(collection);
   invalid.folders[0].parentId = "nested";
   assert.throws(() => validateCollection(invalid), /вложенность/);
-  await projects.createProject(directory, "other", "zig");
+  await projects.createProject(directory, "other", "sbsl");
   await assert.rejects(store.save(project.id, collection), /Проект изменился/);
 });

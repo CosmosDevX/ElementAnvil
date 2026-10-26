@@ -1,5 +1,5 @@
 import { discover } from "../lib/runtime.mjs";
-import { LanguageServer } from "../lib/lsp.mjs";
+import { LanguageServer, documentKey } from "../lib/lsp.mjs";
 import { writeFile, mkdtemp, unlink, rmdir } from "node:fs/promises";
 import path from "node:path";
 import { workspaceDir } from "../lib/runtime.mjs";
@@ -31,21 +31,15 @@ try {
   );
   if (!items.some((item) => item.label.includes("Записать")))
     throw new Error("Не получена подсказка Записать");
-  server.notify("textDocument/didSave", { textDocument: { uri }, text });
-  server.notify("textDocument/didChange", {
-    textDocument: { uri, version: 2 },
-    contentChanges: [
-      {
-        range: {
-          start: { line: 1, character: 12 },
-          end: { line: 1, character: 12 },
-        },
-        text: "НеСуществует()",
-      },
-    ],
-  });
+  await server.synchronize(
+    path.relative(workspaceDir, temporaryFile),
+    text.replace("Консоль.", "Консоль.НеСуществует()"),
+  );
   await new Promise((resolve) => setTimeout(resolve, 3000));
-  console.log("Diagnostics:", JSON.stringify(server.diagnostics.get(uri)));
+  console.log(
+    "Diagnostics:",
+    JSON.stringify(server.diagnostics.get(documentKey(uri))),
+  );
 } finally {
   server.stop();
   await unlink(temporaryFile).catch(() => {});
