@@ -1,4 +1,13 @@
-import { app, BrowserWindow, Menu, dialog, shell, nativeTheme } from "electron";
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  dialog,
+  shell,
+  nativeTheme,
+  clipboard,
+  ipcMain,
+} from "electron";
 import { mkdir, readdir, copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
@@ -33,7 +42,7 @@ else {
     pendingFiles.push(filename);
   });
   app.on("window-all-closed", () => app.quit());
-  app.on("before-quit", () => backend?.shutdown());
+  app.on("will-quit", () => backend?.shutdown());
 
   app.whenReady().then(async () => {
     try {
@@ -77,15 +86,42 @@ else {
         show: false,
         autoHideMenuBar: true,
         webPreferences: {
+          preload: path.join(import.meta.dirname, "preload.cjs"),
           nodeIntegration: false,
           contextIsolation: true,
           sandbox: true,
         },
       });
+      let savedForClose = false;
+      window.webContents.on("will-prevent-unload", (event) => {
+        if (savedForClose) {
+          event.preventDefault();
+          return;
+        }
+        const choice = dialog.showMessageBoxSync(window, {
+          type: "warning",
+          title: "Несохранённые изменения",
+          message: "Сохранить изменения перед закрытием?",
+          buttons: ["Сохранить и закрыть", "Закрыть без сохранения", "Отмена"],
+          defaultId: 0,
+          cancelId: 2,
+          noLink: true,
+        });
+        if (choice === 1) event.preventDefault();
+        else if (choice === 0) window.webContents.send("save-before-close");
+      });
+      ipcMain.on("files-saved-for-close", (event) => {
+        if (event.sender !== window?.webContents) return;
+        savedForClose = true;
+        window.close();
+      });
       window.webContents.session.setPermissionRequestHandler(
         (contents, permission, callback) => callback(false),
       );
       backend.configureDesktop({
+        terminal: true,
+        reveal: async (filename) => shell.showItemInFolder(filename),
+        copyText: async (text) => clipboard.writeText(text),
         openExternal: async (url) => openDocumentation(url),
         hasPendingFile: () => pendingFiles.length > 0,
         nextFile: async () => pendingFiles.shift() || null,

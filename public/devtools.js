@@ -198,8 +198,9 @@ export class DevTools {
         ),
       );
     this.commitMessage = element("textarea", "ut-side-input");
-    this.commitMessage.placeholder = "Сообщение коммита";
-    this.commitMessage.rows = 2;
+    this.commitMessage.placeholder =
+      "Заголовок коммита\nОписание — со второй строки";
+    this.commitMessage.rows = 3;
     this.commitMessage.setAttribute("aria-label", "Сообщение коммита");
     this.commitButton = button("Создать коммит", async () => {
       if (await this.gitAction("commit", { message: this.commitMessage.value }))

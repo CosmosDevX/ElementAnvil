@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="/http-client.css" />
     <link rel="stylesheet" href="/document-tools.css" />
     <link rel="stylesheet" href="/devtools.css" />
+    <link rel="stylesheet" href="/terminal-vendor/xterm.css" />
+    <link rel="stylesheet" href="/file-actions.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -281,6 +283,33 @@
               <svg><use href="#i-play" /></svg><span>Запустить</span
               ><kbd>F5</kbd>
             </button>
+            <button
+              id="run-options"
+              class="ut-icon-button"
+              title="Выбрать файл для запуска"
+              aria-label="Варианты запуска"
+            >
+              ▾
+            </button>
+            <div
+              id="run-menu"
+              class="ut-run-menu ut-hidden"
+              role="menu"
+              aria-label="Выбор запуска"
+            >
+              <button id="run-project-choice" role="menuitem">
+                Запустить проект · F5
+              </button>
+              <button id="run-file-choice" role="menuitem">
+                Запустить текущий .sbsl
+              </button>
+              <button id="debug-project-choice" role="menuitem">
+                Отладить проект · Ctrl+F5
+              </button>
+              <button id="debug-file-choice" role="menuitem">
+                Отладить текущий .sbsl
+              </button>
+            </div>
           </div>
         </div>
         <div id="editor-wrap" class="ut-editor-wrap">
@@ -312,6 +341,7 @@
               ><button id="problems-tab" class="ut-console-tab">
                 Ошибки <span id="problem-count">0</span>
               </button>
+              <button id="terminal-tab" class="ut-console-tab">Терминал</button>
             </div>
             <div class="ut-console-controls">
               <span id="run-meta"></span
@@ -359,6 +389,11 @@
           </div>
           <div id="output" class="ut-console-body"></div>
           <div id="problems" class="ut-console-body ut-hidden"></div>
+          <div
+            id="terminal"
+            class="ut-terminal ut-hidden"
+            aria-label="Терминал проекта"
+          ></div>
         </section>
       </main>
       <footer class="ut-statusbar">
@@ -399,6 +434,12 @@
       </div>
       <label class="ut-anomaly-setting"
         ><span
+          ><strong>Автосохранение файлов</strong
+          ><small>Сохранять изменения во время ввода</small></span
+        ><input id="auto-save" type="checkbox" role="switch"
+      /></label>
+      <label class="ut-anomaly-setting"
+        ><span
           ><strong>Миникарта кода</strong
           ><small>Обзор файла справа от кода</small></span
         ><input id="minimap" type="checkbox" role="switch"
@@ -413,7 +454,7 @@
       </button>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        UnexploredEditor <span id="app-version">0.4.0</span>
+        UnexploredEditor <span id="app-version">0.4.1</span>
       </p>
     </dialog>
     <dialog id="create-project-dialog" class="ut-dialog">
@@ -480,6 +521,42 @@
           ><button type="submit" class="ut-primary">Создать</button>
         </div>
       </form>
+    </dialog>
+    <dialog id="file-name-dialog" class="ut-dialog">
+      <form id="file-name-form">
+        <div class="ut-dialog-heading">
+          <h2 id="file-name-title">Переименовать</h2>
+          <button
+            type="button"
+            class="ut-icon-button"
+            data-close="file-name-dialog"
+            aria-label="Отмена"
+          >
+            ×
+          </button>
+        </div>
+        <label class="ut-setting-label" for="file-new-name">Имя</label
+        ><input id="file-new-name" required maxlength="180" />
+        <p id="file-name-error" class="ut-error" role="alert"></p>
+        <div class="ut-dialog-buttons">
+          <button
+            type="button"
+            class="ut-secondary"
+            data-close="file-name-dialog"
+          >
+            Отмена</button
+          ><button type="submit" class="ut-primary">Применить</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="unsaved-dialog" class="ut-dialog">
+      <div class="ut-dialog-heading"><h2>Несохранённые изменения</h2></div>
+      <p id="unsaved-message"></p>
+      <div class="ut-dialog-buttons">
+        <button id="unsaved-cancel" class="ut-secondary">Отмена</button
+        ><button id="unsaved-discard" class="ut-secondary">Не сохранять</button
+        ><button id="unsaved-save" class="ut-primary">Сохранить</button>
+      </div>
     </dialog>
     <div id="toast" class="ut-toast ut-hidden" role="status"></div>
     <script src="/vendor/vs/loader.js"></script>

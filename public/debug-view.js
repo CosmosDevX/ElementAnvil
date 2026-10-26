@@ -131,10 +131,14 @@ export class DebugView {
     this.ctx.editor.updateOptions({ readOnly: false });
     this.render();
   }
-  async start() {
+  async start(filename) {
     if (this.active)
       return this.state === "stopped" ? this.command("continue") : undefined;
     if (!this.ctx.project()) return;
+    this.filename =
+      typeof filename === "string"
+        ? filename
+        : this.ctx.project().entry || this.ctx.currentName();
     this.active = true;
     this.state = "starting";
     this.ctx.editor.updateOptions({ readOnly: true });
@@ -152,7 +156,8 @@ export class DebugView {
       this.ctx.updateStatus();
       const result = await this.ctx.api("debug/start", {
         projectId: this.ctx.project().id,
-        path: this.ctx.currentName(),
+        path: typeof filename === "string" ? filename : this.ctx.currentName(),
+        target: typeof filename === "string" ? "file" : "project",
         breakpoints: Object.fromEntries(this.points),
       });
       this.cursor = 0;
@@ -178,6 +183,21 @@ export class DebugView {
     } finally {
       this.polling = false;
     }
+  }
+  renamePaths(oldPath, newPath) {
+    const next = new Map();
+    for (const [path, lines] of this.points)
+      next.set(
+        path === oldPath || path.startsWith(oldPath + "/")
+          ? newPath + path.slice(oldPath.length)
+          : path,
+        lines,
+      );
+    this.points = next;
+    this.verified = [];
+    this.marks.clear();
+    this.renderPoints();
+    this.decorate();
   }
   call(command, args = {}) {
     return this.ctx.api("debug/" + command, {

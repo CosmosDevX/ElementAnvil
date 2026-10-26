@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ProjectGit, parseStatus } from "../lib/git.mjs";
+import { ProjectGit, parseStatus, commitMessage } from "../lib/git.mjs";
 import { ProjectManager } from "../lib/projects.mjs";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
@@ -16,6 +16,18 @@ test("Git porcelain parses spaces, Cyrillic, renames and tracking counters", () 
   assert.equal(result.files[0].staged, true);
   assert.equal(result.files[1].path, "Модули/Тест.sbsl");
   assert.equal(result.files[2].untracked, true);
+});
+test("Commit first line is always the subject and subsequent lines are the body", () => {
+  assert.equal(
+    commitMessage("Заголовок\nОписание\nЕщё строка"),
+    "Заголовок\n\nОписание\nЕщё строка",
+  );
+  assert.equal(
+    commitMessage("Заголовок\r\n\r\nОписание"),
+    "Заголовок\n\nОписание",
+  );
+  assert.equal(commitMessage("Только заголовок"), "Только заголовок");
+  assert.throws(() => commitMessage("\nБез заголовка"), /Первая строка/);
 });
 
 test("Git workflow stages, unstages, commits, diffs, branches and fast-forward synchronizes", async (t) => {
@@ -61,7 +73,14 @@ test("Git workflow stages, unstages, commits, diffs, branches and fast-forward s
     "// TODO: изменение\n",
   );
   await git.mutate(project.id, "stage", { path: "Скрипт.sbsl" });
-  await git.mutate(project.id, "commit", { message: "TODO" });
+  await git.mutate(project.id, "commit", {
+    message: "TODO\nОписание коммита\nВторая строка описания",
+  });
+  const message = (
+    await git.git(project.root, ["log", "-1", "--format=%s%x00%b"])
+  ).split("\0");
+  assert.equal(message[0], "TODO");
+  assert.match(message[1], /^Описание коммита\nВторая строка описания/);
   const branch = (await git.status(project.id)).branch;
   await git.mutate(project.id, "branch", { name: "feature/test" });
   assert.equal((await git.status(project.id)).branch, "feature/test");

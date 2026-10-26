@@ -36,7 +36,7 @@ async function post(endpoint, data = {}) {
 }
 try {
   assert.equal(session.project, null);
-  assert.equal(session.version, "0.4.0");
+  assert.equal(session.version, "0.4.1");
   const markdownModule = await fetch(`${origin}/markdown/markdown-it.mjs`);
   assert.match(markdownModule.headers.get("content-type"), /text\/javascript/);
   assert.equal(session.settings.anomalies, false);
@@ -130,6 +130,38 @@ try {
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /Привет, мир!/);
     console.log("PASS: actual modular Element project execution");
+    const chosen = "Выбранный.sbsl",
+      chosenText =
+        'метод Скрипт()\n    пер Ответ = 99\n    Консоль.Записать("SELECTED_FILE=" + Ответ)\n;\n';
+    await post("file/create", { path: chosen, kind: "file" });
+    await post("save", { path: chosen, text: chosenText });
+    const selectedRun = await post("run", { path: chosen, text: chosenText });
+    assert.match(selectedRun.stdout, /SELECTED_FILE=99/);
+    console.log("PASS: selected .sbsl runs independently of the project entry");
+    if (session.elementDebug) {
+      async function debugSource(target, expected) {
+        const started = await post("debug/start", { path: chosen, target });
+        try {
+          const end = Date.now() + 15000;
+          let state;
+          do {
+            state = await post("debug/state", { id: started.id });
+            if (state.state === "stopped") break;
+            await new Promise((resolve) => setTimeout(resolve, 80));
+          } while (Date.now() < end);
+          assert.equal(state.state, "stopped");
+          const stack = await post("debug/stack", { id: started.id });
+          assert.equal(stack.stackFrames[0].source.path, expected);
+        } finally {
+          await post("debug/stop", { id: started.id });
+        }
+      }
+      await debugSource("file", chosen);
+      await debugSource("project", "Скрипт.sbsl");
+      console.log(
+        "PASS: DAP selects the requested file or project entry explicitly",
+      );
+    }
   }
   if (session.elementLsp) {
     const text = "метод Скрипт()\n    Консоль.\n;\n";

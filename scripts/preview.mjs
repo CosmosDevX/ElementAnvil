@@ -14,6 +14,7 @@ process.env.UNDERTOW_DATA_DIR = path.join(directory, "profile");
 process.env.PORT = "4175";
 const backend = await import("../server.mjs");
 backend.configureDesktop({
+  terminal: true,
   openFolder: async () => sample,
   openFile: async () => path.join(sample, "Модули", "Приветствие.sbsl"),
   createFolder: async () => directory,

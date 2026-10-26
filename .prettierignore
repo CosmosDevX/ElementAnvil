@@ -5,3 +5,4 @@ workspace
 public/fonts
 public/fonts.css
 public/markdown/
+public/terminal-vendor/

@@ -1,0 +1,132 @@
+.ut-tree-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+}
+.ut-tree-row .ut-tree-item {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+}
+.ut-tree-more {
+  opacity: 0;
+  width: 26px;
+  height: 28px;
+  color: var(--muted);
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.ut-tree-row:hover .ut-tree-more,
+.ut-tree-row:focus-within .ut-tree-more {
+  opacity: 1;
+}
+.ut-tree-more:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.ut-file-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 238px;
+  max-width: 330px;
+  padding: 5px;
+  background: var(--raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px #0005;
+}
+.ut-file-menu-title {
+  font-size: 11px;
+  padding: 6px 9px 9px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ut-file-menu .ut-tool-button {
+  display: block;
+  background: none;
+  border: 0;
+  text-align: left;
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+.ut-file-menu .ut-tool-button:hover:not(:disabled) {
+  background: var(--selection);
+}
+.ut-editor-actions {
+  position: relative;
+}
+.ut-run-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 7px);
+  min-width: 265px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px;
+  box-shadow: 0 6px 24px #0005;
+  z-index: 55;
+}
+.ut-run-menu button {
+  display: block;
+  text-align: left;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.ut-run-menu button:hover {
+  background: var(--selection);
+}
+.ut-terminal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  background: var(--editor);
+  overflow: hidden;
+}
+.ut-terminal-toolbar {
+  height: 32px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 10px;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.ut-terminal-toolbar select {
+  max-width: 320px;
+  min-width: 120px;
+  padding: 3px 6px;
+}
+.ut-terminal-host {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.ut-terminal-instance {
+  height: 100%;
+  padding: 5px 8px;
+}
+.ut-terminal-instance .xterm {
+  height: 100%;
+}
+.ut-terminal .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.ut-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}

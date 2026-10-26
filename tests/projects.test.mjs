@@ -188,6 +188,7 @@ test("Settings and recent projects survive a fresh application session", async (
     fontSize: 18,
     anomalies: true,
     minimap: false,
+    autoSave: false,
   });
   const next = await new ProjectManager(manager.dataDirectory).initialize();
   assert.deepEqual(next.state.settings, {
@@ -196,6 +197,7 @@ test("Settings and recent projects survive a fresh application session", async (
     fontSize: 18,
     anomalies: true,
     minimap: false,
+    autoSave: false,
   });
   assert.equal(next.state.recent[0], project.root);
   assert.equal(next.current, null);
@@ -231,4 +233,43 @@ test("Rejected external binary files leave the current project intact", async (t
   await writeFile(file, Buffer.from([1, 0, 2]));
   await assert.rejects(manager.openFile(file), /Бинарный/);
   assert.equal(manager.current.id, project.id);
+});
+
+test("Rename preserves nested files, updates entry and never replaces a destination", async (t) => {
+  const { folder, manager } = await fixture(t);
+  const project = await manager.createProject(folder, "rename", "sbsl");
+  await manager.save("Скрипт.sbsl", "// источник");
+  const result = await manager.renameEntry("Скрипт.sbsl", "Пуск.sbsl");
+  assert.equal(result.project.entry, "Пуск.sbsl");
+  assert.equal((await manager.read("Пуск.sbsl")).text, "// источник");
+  assert.equal(
+    JSON.parse((await manager.read("unexplored.json")).text).entry,
+    "Пуск.sbsl",
+  );
+  await manager.renameEntry("Модули", "Библиотека");
+  assert.ok(
+    (await manager.read("Библиотека/Приветствие.sbsl")).text.includes(
+      "Создать",
+    ),
+  );
+  await manager.create("Занято.sbsl", "file");
+  await manager.save("Занято.sbsl", "оставить");
+  await assert.rejects(
+    manager.renameEntry("Пуск.sbsl", "Занято.sbsl"),
+    /существует/,
+  );
+  assert.equal((await manager.read("Занято.sbsl")).text, "оставить");
+  await assert.rejects(manager.renameEntry("Пуск.sbsl", "../вне.sbsl"));
+  await assert.rejects(manager.renameEntry("../вне", "новое"));
+  const copy = await manager.duplicate(
+    "Пуск.sbsl",
+    "Копия.sbsl",
+    project.id,
+    "// текст редактора",
+  );
+  assert.equal((await manager.read(copy.path)).text, "// текст редактора");
+  assert.equal((await manager.read("Пуск.sbsl")).text, "// источник");
+  await assert.rejects(manager.duplicate("Пуск.sbsl", "Копия.sbsl"), {
+    code: "EEXIST",
+  });
 });

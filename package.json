@@ -1,6 +1,6 @@
 {
   "name": "unexplored-editor",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
@@ -14,17 +14,21 @@
     "test:integration": "node scripts/integration.mjs",
     "test:lsp": "node scripts/check-element-lsp.mjs",
     "test:debug": "node scripts/check-element-debug.mjs",
+    "test:terminal": "node scripts/check-terminal.mjs",
     "fonts": "node scripts/bundle-fonts.mjs",
     "verify:element": "node scripts/verify-element.mjs",
-    "prestart": "node scripts/bundle-markdown.mjs && node node_modules/electron/install.js",
+    "prestart": "node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs && node node_modules/electron/install.js",
     "format": "prettier --write \"{desktop,lib,public,scripts,tests}/**/*.{mjs,js,html,css}\" server.mjs package.json README.md",
-    "prebuild:win": "node scripts/bundle-markdown.mjs",
-    "prestart:web": "node scripts/bundle-markdown.mjs"
+    "prebuild:win": "node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs",
+    "prestart:web": "node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs"
   },
   "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "dompurify": "^3.4.17",
     "markdown-it": "^15.0.3",
-    "monaco-editor": "0.57.0"
+    "monaco-editor": "0.57.0",
+    "node-pty": "^1.1.0"
   },
   "build": {
     "appId": "dev.cosmosdevx.unexplorededitor",
@@ -44,6 +48,10 @@
       "build/icon.ico"
     ],
     "asar": true,
+    "asarUnpack": [
+      "node_modules/node-pty/**"
+    ],
+    "npmRebuild": false,
     "compression": "store",
     "win": {
       "target": [

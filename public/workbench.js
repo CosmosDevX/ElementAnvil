@@ -1,6 +1,8 @@
 import { themes } from "./themes.js";
 import { projectFile } from "./document-uri.js";
 import { DevTools } from "./devtools.js";
+import { FileActions } from "./file-actions.js";
+import { TerminalPanel } from "./terminal-panel.js";
 import { registerLanguages } from "./languages.js";
 import { setupProviders } from "./intelligence.js";
 import { fonts, applyAppearance } from "./appearance.js";
@@ -20,6 +22,8 @@ const models = new Map(),
   expanded = new Set(),
   problems = new Map();
 const diagnosticErrors = new Map();
+const pendingWrites = new Set();
+let silentModelChange = false;
 let session,
   editor,
   anomalies,
@@ -27,12 +31,17 @@ let session,
   httpClient,
   markdownPreview,
   devtools,
+  fileActions,
+  terminalPanel,
+  nameAction,
+  fileMutation = false,
   currentName = null,
   selectedDirectory = "",
   consolePanel = "output",
   entryKind = "file",
   projectBusy = false,
   running = false,
+  runningName = null,
   diagnosticBusy = false,
   diagnosticTimer,
   toastTimer,
@@ -56,6 +65,7 @@ const languages = {
 const languageOf = (name) =>
   languages[name?.split(".").at(-1)?.toLowerCase()] || "plaintext";
 const basename = (name) => name?.split("/").at(-1) || "";
+const eventTargetIsTerminal = (event) => !!event.target.closest?.("#terminal");
 const serviceAvailable = (language) =>
   language === "sbsl" && session.elementLsp;
 function notice(message) {
@@ -65,6 +75,7 @@ function notice(message) {
   toastTimer = setTimeout(() => $("toast").classList.add("ut-hidden"), 4500);
 }
 function report(error) {
+  if (error?.cancelled) return;
   notice(error.message || String(error));
   console.warn(error);
 }
@@ -195,7 +206,13 @@ async function save(name = currentName) {
   saves.delete(name);
   const model = models.get(name),
     text = model.getValue();
-  await api("save", projectData({ path: name, text }));
+  const pending = api("save", projectData({ path: name, text }));
+  pendingWrites.add(pending);
+  try {
+    await pending;
+  } finally {
+    pendingWrites.delete(pending);
+  }
   if (models.get(name) === model && model.getValue() === text)
     dirty.delete(name);
   updateStatus();
@@ -204,12 +221,181 @@ async function save(name = currentName) {
 async function saveAll() {
   for (const name of [...dirty]) await save(name);
 }
+function confirmUnsaved(names, allowDiscard = true) {
+  if (!names.length) return Promise.resolve("save");
+  return new Promise((resolve) => {
+    const dialog = $("unsaved-dialog");
+    $("unsaved-message").textContent =
+      names.length === 1
+        ? `Сохранить изменения в «${names[0]}»?`
+        : `Сохранить изменения в ${names.length} файлах?`;
+    $("unsaved-discard").classList.toggle("ut-hidden", !allowDiscard);
+    let answer = "cancel";
+    for (const [id, value] of [
+      ["unsaved-save", "save"],
+      ["unsaved-discard", "discard"],
+      ["unsaved-cancel", "cancel"],
+    ])
+      $(id).onclick = () => {
+        answer = value;
+        dialog.close();
+      };
+    dialog.addEventListener("close", () => resolve(answer), { once: true });
+    dialog.showModal();
+  });
+}
+async function saveBeforeAction() {
+  await Promise.all([...pendingWrites]);
+  if (session.settings.autoSave === false && dirty.size) {
+    const answer = await confirmUnsaved([...dirty], false);
+    if (answer !== "save")
+      throw Object.assign(new Error("Действие отменено"), { cancelled: true });
+  }
+  await saveAll();
+}
+async function copyText(text) {
+  if (session.clipboard) await api("clipboard/write", { text });
+  else await navigator.clipboard.writeText(text);
+  notice("Скопировано");
+}
+function openNameAction(operation, item) {
+  nameAction = { operation, item, projectId: session.project.id };
+  $("file-name-title").textContent =
+    operation === "rename" ? "Переименовать" : "Дублировать файл";
+  const dot = item.name.lastIndexOf(".");
+  const stem = dot > 0 ? item.name.slice(0, dot) : item.name,
+    extension = dot > 0 ? item.name.slice(dot) : "";
+  $("file-new-name").value =
+    operation === "rename" ? item.name : stem + " копия" + extension;
+  $("file-name-error").textContent = "";
+  $("file-name-dialog").showModal();
+  $("file-new-name").focus();
+  $("file-new-name").select();
+}
+async function applyNameAction() {
+  if (!nameAction || fileMutation) return;
+  const { operation, item, projectId } = nameAction;
+  if (projectId !== session.project?.id) throw new Error("Проект изменился");
+  fileMutation = true;
+  editor.updateOptions({ readOnly: true });
+  const submit = $("file-name-form").querySelector('[type="submit"]');
+  submit.disabled = true;
+  try {
+    const affected = [...models.keys()].filter(
+      (path) => path === item.path || path.startsWith(item.path + "/"),
+    );
+    if (operation === "rename")
+      for (const name of affected) {
+        clearTimeout(saves.get(name));
+        saves.delete(name);
+      }
+    await Promise.all([...pendingWrites]);
+    const result = await api("file/" + operation, {
+      projectId,
+      path: item.path,
+      name: $("file-new-name").value,
+      ...(operation === "duplicate" && models.has(item.path)
+        ? { text: models.get(item.path).getValue() }
+        : {}),
+    });
+    if (operation === "rename") {
+      const remap = (path) =>
+        typeof path === "string" &&
+        (path === result.oldPath || path.startsWith(result.oldPath + "/"))
+          ? result.path + path.slice(result.oldPath.length)
+          : path;
+      const previous = currentName;
+      if (previous && models.has(previous))
+        views.set(previous, editor.saveViewState());
+      const snapshots = affected.map((name) => ({
+        name,
+        next: remap(name),
+        text: models.get(name).getValue(),
+        dirty: dirty.has(name),
+        view: views.get(name),
+      }));
+      if (affected.includes(previous)) editor.setModel(null);
+      for (const snapshot of snapshots) {
+        const model = models.get(snapshot.name);
+        devtools.todoMarks.delete(model);
+        models.delete(snapshot.name);
+        views.delete(snapshot.name);
+        dirty.delete(snapshot.name);
+        problems.delete(snapshot.name);
+        model.dispose();
+      }
+      session.project = result.project;
+      for (const snapshot of snapshots) {
+        createModel(snapshot.next, snapshot.text);
+        if (snapshot.dirty) {
+          dirty.add(snapshot.next);
+          scheduleSave(snapshot.next);
+        }
+        if (snapshot.view) views.set(snapshot.next, snapshot.view);
+      }
+      selectedDirectory = remap(selectedDirectory);
+      const expandedNext = [...expanded].map(remap);
+      expanded.clear();
+      for (const path of expandedNext) expanded.add(path);
+      tree.clear();
+      devtools.debug.renamePaths(result.oldPath, result.path);
+      diagnosticErrors.clear();
+      problems.clear();
+      if (result.configChanged) {
+        const model = models.get(result.configChanged.path);
+        if (model && !dirty.has(result.configChanged.path)) {
+          silentModelChange = true;
+          try {
+            model.setValue(result.configChanged.text);
+          } finally {
+            silentModelChange = false;
+          }
+        }
+      }
+      await refreshTree();
+      if (previous && affected.includes(previous)) {
+        currentName = null;
+        await openFile(remap(previous));
+      }
+      renderTabs();
+      renderTree();
+      updateStatus();
+      if (result.warning) notice(result.warning);
+    } else {
+      await refreshTree();
+      await openFile(result.path);
+    }
+    $("file-name-dialog").close();
+    nameAction = null;
+  } finally {
+    fileMutation = false;
+    submit.disabled = false;
+    editor.updateOptions({
+      readOnly: devtools.debug.active || devtools.gitBusy,
+    });
+  }
+}
+function scheduleSave(name) {
+  clearTimeout(saves.get(name));
+  saves.delete(name);
+  if (session.settings.autoSave === false) return;
+  saves.set(
+    name,
+    setTimeout(() => {
+      if (session.settings.autoSave !== false) save(name).catch(report);
+    }, 650),
+  );
+}
 async function projectAction(endpoint, data = {}) {
   if (projectBusy) return;
   projectBusy = true;
   try {
     await httpClient?.flush();
-    await saveAll();
+    if (session.settings.autoSave === false && dirty.size) {
+      const answer = await confirmUnsaved([...dirty]);
+      if (answer === "cancel") return;
+      if (answer === "save") await saveAll();
+    } else await saveAll();
     const createButton = $("create-project-form").querySelector(
       '[type="submit"]',
     );
@@ -222,6 +408,8 @@ async function projectAction(endpoint, data = {}) {
     if (result.cancelled) return;
     const changed = result.project.id !== session.project?.id;
     if (changed) {
+      terminalPanel?.reset();
+      fileActions?.hide();
       devtools?.reset();
       anomalies.end();
       for (const timeout of saves.values()) clearTimeout(timeout);
@@ -308,7 +496,20 @@ function renderTree() {
       label.className = "ut-tree-label";
       label.textContent = item.name;
       button.append(chevron, icon, label);
-      list.append(button);
+      const row = document.createElement("div");
+      row.className = "ut-tree-row";
+      const more = document.createElement("button");
+      more.className = "ut-tree-more";
+      more.textContent = "⋯";
+      more.title = "Действия: " + item.name;
+      more.setAttribute("aria-label", "Действия: " + item.name);
+      more.onclick = (event) => {
+        event.stopPropagation();
+        fileActions.show(item, more, true);
+      };
+      row.append(button, more);
+      fileActions.attach(row, item, more);
+      list.append(row);
       if (item.kind === "directory") {
         button.setAttribute("aria-expanded", String(expanded.has(item.path)));
         button.onclick = async () => {
@@ -340,31 +541,32 @@ function renderTree() {
     list.append(empty);
   }
 }
+function createModel(name, text) {
+  const uri = monaco.Uri.parse(
+    session.project.uri + name.split("/").map(encodeURIComponent).join("/"),
+  );
+  const model = monaco.editor.createModel(text, languageOf(name), uri);
+  model.updateOptions({ tabSize: 4, insertSpaces: true });
+  models.set(name, model);
+  model.onDidChangeContent(() => {
+    if (silentModelChange) return;
+    dirty.add(name);
+    problems.delete(name);
+    diagnosticErrors.delete(name);
+    monaco.editor.setModelMarkers(model, "native-lsp", []);
+    if (currentName === name) renderProblems();
+    scheduleDiagnostics();
+    renderTabs();
+    updateStatus();
+    scheduleSave(name);
+  });
+  return model;
+}
 async function openFile(name, provided) {
   if (!models.has(name)) {
     const file =
       provided || (await api("file/read", projectData({ path: name })));
-    const uri = monaco.Uri.parse(
-      session.project.uri + name.split("/").map(encodeURIComponent).join("/"),
-    );
-    const model = monaco.editor.createModel(file.text, languageOf(name), uri);
-    model.updateOptions({ tabSize: 4, insertSpaces: true });
-    models.set(name, model);
-    model.onDidChangeContent(() => {
-      dirty.add(name);
-      problems.delete(name);
-      diagnosticErrors.delete(name);
-      monaco.editor.setModelMarkers(model, "native-lsp", []);
-      if (currentName === name) renderProblems();
-      scheduleDiagnostics();
-      renderTabs();
-      updateStatus();
-      clearTimeout(saves.get(name));
-      saves.set(
-        name,
-        setTimeout(() => save(name).catch(report), 650),
-      );
-    });
+    createModel(name, file.text);
   }
   const parts = name.split("/");
   for (let i = 1; i < parts.length; i++) {
@@ -436,7 +638,17 @@ function renderTabs() {
 }
 async function closeFile(name) {
   if (!models.has(name)) return;
-  if (dirty.has(name)) await save(name);
+  if (dirty.has(name)) {
+    const answer =
+      session.settings.autoSave === false
+        ? await confirmUnsaved([name])
+        : "save";
+    if (answer === "cancel") return;
+    if (answer === "save") await save(name);
+  }
+  clearTimeout(saves.get(name));
+  saves.delete(name);
+  dirty.delete(name);
   const model = models.get(name);
   if (!model) return;
   if (serviceAvailable(model.getLanguageId()))
@@ -460,6 +672,9 @@ async function closeFile(name) {
   renderTree();
 }
 function updateStatus() {
+  if (!currentName) {
+    $("problem-count").textContent = "0";
+  }
   httpClient?.setProjectRunning(running);
   document.title = currentName
     ? `${basename(currentName)} — ${session.project?.name || ""} — UnexploredEditor`
@@ -500,6 +715,19 @@ function updateStatus() {
     (!session.project.entry && lang !== "sbsl");
   $("debug-start").disabled =
     !session.elementDebug || !session.project || running || devtools?.gitBusy;
+  const target = session.project?.entry || currentName;
+  $("run").title = running
+    ? `Выполняется: ${runningName || target}`
+    : `Запустить проект: ${target || "не выбран .sbsl"} · F5`;
+  $("debug-start").title = devtools?.debug.active
+    ? `Продолжить отладку: ${devtools.debug.filename}`
+    : `Отладить проект: ${target || "не выбран .sbsl"} · Ctrl+F5`;
+  $("run-file-choice").disabled = $("run").disabled || lang !== "sbsl";
+  $("debug-file-choice").disabled =
+    $("debug-start").disabled || devtools?.debug.active || lang !== "sbsl";
+  $("run-project-choice").disabled = $("run").disabled;
+  $("debug-project-choice").disabled = $("debug-start").disabled;
+  $("terminal-tab").disabled = !session.project || !session.terminal;
 }
 async function reloadProjectFiles() {
   const previous = currentName;
@@ -528,10 +756,11 @@ async function reloadProjectFiles() {
 function selectConsole(panel) {
   panels?.showConsole();
   consolePanel = panel;
-  for (const name of ["output", "problems"]) {
+  for (const name of ["output", "problems", "terminal"]) {
     $(name).classList.toggle("ut-hidden", name !== panel);
     $(`${name}-tab`).classList.toggle("ut-selected", name === panel);
   }
+  if (panel === "terminal") terminalPanel?.fit();
 }
 function renderProblems() {
   const list = $("problems");
@@ -617,13 +846,17 @@ async function refreshDiagnostics() {
     diagnosticBusy = false;
   }
 }
-async function run() {
+async function run(selectedFile) {
   if (running || !session.project) return;
   running = true;
   updateStatus();
   try {
-    await saveAll();
-    const name = session.project.entry || currentName;
+    await saveBeforeAction();
+    const name =
+      typeof selectedFile === "string"
+        ? selectedFile
+        : session.project.entry || currentName;
+    runningName = name;
     if (!name) return;
     const text =
       models.get(name)?.getValue() ??
@@ -646,11 +879,13 @@ async function run() {
     $("run-meta").textContent =
       `Код ${result.code ?? "остановлено"} · ${(result.elapsed / 1000).toFixed(2)} с`;
   } catch (error) {
+    if (error.cancelled) return;
     append(error.message, "ut-console-error");
     selectConsole("output");
     $("run-meta").textContent = "Ошибка";
   } finally {
     running = false;
+    runningName = null;
     $("stop").disabled = true;
     $("run").querySelector("span").textContent = "Запустить";
     updateStatus();
@@ -688,6 +923,7 @@ function renderSettings() {
   $("font-size-value").textContent = `${session.settings.fontSize} px`;
   $("anomalies").checked = session.settings.anomalies;
   $("minimap").checked = session.settings.minimap !== false;
+  $("auto-save").checked = session.settings.autoSave !== false;
   $("test-anomaly").classList.toggle("ut-hidden", !session.settings.anomalies);
   const font = fonts.find((f) => f.id === session.settings.font);
   $("font-preview").style.fontFamily = `'${font.family}',monospace`;
@@ -697,6 +933,12 @@ function settings(patch) {
   session.settings = { ...session.settings, ...patch };
   applyAppearance(monaco, editor, session.settings);
   renderSettings();
+  if (Object.hasOwn(patch, "autoSave")) {
+    for (const timer of saves.values()) clearTimeout(timer);
+    saves.clear();
+    if (patch.autoSave) for (const name of dirty) scheduleSave(name);
+  }
+  terminalPanel?.appearance();
   if (!session.settings.anomalies) anomalies.end();
   $("settings-save-state").textContent = "Сохранение…";
   const value = { ...session.settings };
@@ -729,7 +971,12 @@ function bind() {
   for (const id of ["open-file", "home-open-file"])
     $(id).onclick = () => projectAction("project/open-file");
   $("home-button").onclick = () =>
-    Promise.all([saveAll(), httpClient.flush()]).then(showHome).catch(report);
+    Promise.all([
+      session.settings.autoSave !== false ? saveAll() : Promise.resolve(),
+      httpClient.flush(),
+    ])
+      .then(showHome)
+      .catch(report);
   $("return-project").onclick = showWorkbench;
   $("new-element-project").onclick = () => newProject("sbsl");
   $("new-web-project").onclick = () => newProject("sbsl-web");
@@ -774,12 +1021,34 @@ function bind() {
   $("save").onclick = () => save().catch(report);
   $("format").onclick = () =>
     editor.getAction("editor.action.formatDocument").run();
-  $("run").onclick = run;
+  $("run").onclick = () => run();
+  $("run-options").onclick = () => {
+    $("run-menu").classList.toggle("ut-hidden");
+  };
+  for (const id of [
+    "run-project-choice",
+    "run-file-choice",
+    "debug-project-choice",
+    "debug-file-choice",
+  ])
+    $(id).onclick = () => {
+      $("run-menu").classList.add("ut-hidden");
+      if (id === "run-project-choice") run();
+      else if (id === "run-file-choice") run(currentName);
+      else if (id === "debug-file-choice") devtools.debug.start(currentName);
+      else devtools.debug.start();
+    };
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest("#run-options,#run-menu"))
+      $("run-menu").classList.add("ut-hidden");
+  });
   $("debug-start").onclick = () => devtools.debug.start();
   $("stop").onclick = () => api("stop").catch(report);
   for (const panel of ["output", "problems"])
     $(`${panel}-tab`).onclick = () => selectConsole(panel);
+  $("terminal-tab").onclick = () => terminalPanel.show().catch(report);
   $("clear-console").onclick = () => {
+    if (consolePanel === "terminal") terminalPanel.clear();
     if (consolePanel === "output") $("output").replaceChildren();
   };
   $("settings-button").onclick = () => {
@@ -796,6 +1065,14 @@ function bind() {
   $("anomalies").onchange = () =>
     settings({ anomalies: $("anomalies").checked });
   $("minimap").onchange = () => settings({ minimap: $("minimap").checked });
+  $("auto-save").onchange = () =>
+    settings({ autoSave: $("auto-save").checked });
+  $("file-name-form").onsubmit = (event) => {
+    event.preventDefault();
+    applyNameAction().catch((error) => {
+      $("file-name-error").textContent = error.message;
+    });
+  };
   $("test-anomaly").onclick = () => {
     if (!currentName) {
       notice("Сначала открой файл.");
@@ -808,6 +1085,13 @@ function bind() {
     "keydown",
     (e) => {
       const ctrl = e.ctrlKey || e.metaKey;
+      if (eventTargetIsTerminal(e) && !(ctrl && e.code === "Backquote")) return;
+      if (ctrl && e.code === "Backquote" && session.project) {
+        e.preventDefault();
+        e.stopPropagation();
+        terminalPanel.show().catch(report);
+        return;
+      }
       if (ctrl && ["KeyB", "KeyJ"].includes(e.code)) {
         e.preventDefault();
         e.stopPropagation();
@@ -821,7 +1105,7 @@ function bind() {
         e.preventDefault();
         $("settings-dialog").showModal();
         renderSettings();
-      } else if (ctrl && e.code === "KeyS") {
+      } else if (ctrl && (e.code === "KeyS" || e.key.toLowerCase() === "s")) {
         e.preventDefault();
         e.stopPropagation();
         (httpClient?.visible ? httpClient.flush() : saveAll()).catch(report);
@@ -1012,7 +1296,7 @@ async function initialize() {
     project: () => session.project,
     currentName: () => currentName,
     models: () => models,
-    saveAll,
+    saveAll: saveBeforeAction,
     report,
     updateStatus,
     reloadFiles: reloadProjectFiles,
@@ -1033,6 +1317,39 @@ async function initialize() {
       editor.focus();
     },
   });
+  terminalPanel = new TerminalPanel({
+    api,
+    project: () => session.project,
+    settings: () => session.settings,
+    show: () => selectConsole("terminal"),
+    report,
+    copy: copyText,
+  });
+  fileActions = new FileActions({
+    report,
+    run,
+    debug: (path) => devtools.debug.start(path),
+    nameAction: openNameAction,
+    busy: () =>
+      running ||
+      projectBusy ||
+      fileMutation ||
+      devtools.debug.active ||
+      devtools.gitBusy,
+    createIn: (kind, path) => {
+      selectedDirectory = path;
+      newEntry(kind);
+    },
+    reveal: (path) => api("file/reveal", projectData({ path })),
+    canReveal: () => session.reveal,
+    terminal: (path) => terminalPanel.create(path),
+    canTerminal: () => session.terminal,
+    copy: copyText,
+    absolute: (path) =>
+      session.project.root +
+      (session.platform === "win32" ? "\\" : "/") +
+      path.replaceAll("/", session.platform === "win32" ? "\\" : "/"),
+  });
   $("app-version").textContent = session.version;
   httpClient = new HttpClient({
     api,
@@ -1045,6 +1362,16 @@ async function initialize() {
     runProject: () => (running ? api("stop").catch(report) : run()),
   });
   bind();
+  window.unexploredWindow?.onSaveBeforeClose(async () => {
+    try {
+      await saveAll();
+      await httpClient.flush();
+      await settingsQueue;
+      window.unexploredWindow.closeAfterSaving();
+    } catch (error) {
+      report(error);
+    }
+  });
   renderSettings();
   showHome();
   if (session.project) {
