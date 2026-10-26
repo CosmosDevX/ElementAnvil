@@ -1,6 +1,6 @@
 {
   "name": "unexplored-editor",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
@@ -13,6 +13,7 @@
     "test": "node --test tests/*.test.mjs",
     "test:integration": "node scripts/integration.mjs",
     "test:lsp": "node scripts/check-element-lsp.mjs",
+    "test:debug": "node scripts/check-element-debug.mjs",
     "fonts": "node scripts/bundle-fonts.mjs",
     "verify:element": "node scripts/verify-element.mjs",
     "prestart": "node scripts/bundle-markdown.mjs && node node_modules/electron/install.js",

@@ -1,5 +1,6 @@
 import { themes } from "./themes.js";
 import { projectFile } from "./document-uri.js";
+import { DevTools } from "./devtools.js";
 import { registerLanguages } from "./languages.js";
 import { setupProviders } from "./intelligence.js";
 import { fonts, applyAppearance } from "./appearance.js";
@@ -25,6 +26,7 @@ let session,
   panels,
   httpClient,
   markdownPreview,
+  devtools,
   currentName = null,
   selectedDirectory = "",
   consolePanel = "output",
@@ -220,6 +222,7 @@ async function projectAction(endpoint, data = {}) {
     if (result.cancelled) return;
     const changed = result.project.id !== session.project?.id;
     if (changed) {
+      devtools?.reset();
       anomalies.end();
       for (const timeout of saves.values()) clearTimeout(timeout);
       saves.clear();
@@ -490,7 +493,37 @@ function updateStatus() {
   $("format").disabled = !model || !serviceAvailable(lang);
   $("save").disabled = !model;
   $("run").disabled =
-    running || !session.project || (!session.project.entry && lang !== "sbsl");
+    running ||
+    devtools?.gitBusy ||
+    devtools?.debug.active ||
+    !session.project ||
+    (!session.project.entry && lang !== "sbsl");
+  $("debug-start").disabled =
+    !session.elementDebug || !session.project || running || devtools?.gitBusy;
+}
+async function reloadProjectFiles() {
+  const previous = currentName;
+  for (const timer of saves.values()) clearTimeout(timer);
+  saves.clear();
+  for (const model of models.values()) model.dispose();
+  models.clear();
+  views.clear();
+  dirty.clear();
+  tree.clear();
+  expanded.clear();
+  problems.clear();
+  diagnosticErrors.clear();
+  currentName = null;
+  editor.setModel(null);
+  devtools?.reset();
+  await refreshTree();
+  if (previous)
+    try {
+      await openFile(previous);
+    } catch {
+      $("empty-editor").classList.remove("ut-hidden");
+    }
+  updateStatus();
 }
 function selectConsole(panel) {
   panels?.showConsole();
@@ -742,6 +775,7 @@ function bind() {
   $("format").onclick = () =>
     editor.getAction("editor.action.formatDocument").run();
   $("run").onclick = run;
+  $("debug-start").onclick = () => devtools.debug.start();
   $("stop").onclick = () => api("stop").catch(report);
   for (const panel of ["output", "problems"])
     $(`${panel}-tab`).onclick = () => selectConsole(panel);
@@ -791,6 +825,32 @@ function bind() {
         e.preventDefault();
         e.stopPropagation();
         (httpClient?.visible ? httpClient.flush() : saveAll()).catch(report);
+      } else if (
+        e.key === "F9" &&
+        !$("workbench").classList.contains("ut-hidden")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (editor.getModel())
+          devtools.debug.toggle(editor.getPosition().lineNumber);
+      } else if (
+        e.key === "F5" &&
+        ctrl &&
+        !$("workbench").classList.contains("ut-hidden")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        devtools.debug.start();
+      } else if (e.key === "F5" && e.shiftKey && devtools.debug.active) {
+        e.preventDefault();
+        e.stopPropagation();
+        devtools.debug.command("stop");
+      } else if (["F10", "F11"].includes(e.key) && devtools.debug.active) {
+        e.preventDefault();
+        e.stopPropagation();
+        devtools.debug.command(
+          e.key === "F10" ? "next" : e.shiftKey ? "stepOut" : "stepIn",
+        );
       } else if (
         e.key === "F5" &&
         !$("workbench").classList.contains("ut-hidden")
@@ -892,6 +952,7 @@ async function initialize() {
     () =>
       session.settings.anomalies &&
       !running &&
+      !devtools?.debug.active &&
       !$("workbench").classList.contains("ut-hidden"),
     notice,
   );
@@ -945,6 +1006,33 @@ async function initialize() {
   panels = new PanelLayout(editor, session.layout, (layout) =>
     api("layout", layout).catch(report),
   );
+  devtools = new DevTools({
+    editor,
+    api,
+    project: () => session.project,
+    currentName: () => currentName,
+    models: () => models,
+    saveAll,
+    report,
+    updateStatus,
+    reloadFiles: reloadProjectFiles,
+    showExplorer: () => {
+      if (panels.state.explorerHidden) panels.toggleExplorer();
+    },
+    showDebug: () => {
+      devtools.show("debug");
+      selectConsole("output");
+    },
+    output: append,
+    openFile: async (name, position) => {
+      await openFile(name);
+      if (position) {
+        editor.setPosition(position);
+        editor.revealLineInCenter(position.lineNumber);
+      }
+      editor.focus();
+    },
+  });
   $("app-version").textContent = session.version;
   httpClient = new HttpClient({
     api,

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/shell.css" />
     <link rel="stylesheet" href="/http-client.css" />
     <link rel="stylesheet" href="/document-tools.css" />
+    <link rel="stylesheet" href="/devtools.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -130,60 +131,83 @@
     ></section>
     <div id="workbench" class="ut-workbench ut-hidden">
       <aside id="explorer" class="ut-explorer">
-        <div class="ut-explorer-heading">
-          <button
-            id="tree-root"
-            class="ut-root-name"
-            title="Выбрать корень проекта"
-          >
-            Проект
-          </button>
-          <div class="ut-tree-tools">
+        <nav class="ut-side-tabs" aria-label="Панели проекта">
+          <button data-side-view="files" aria-pressed="true">Файлы</button>
+          <button data-side-view="todos" aria-pressed="false">TODO</button>
+          <button data-side-view="git" aria-pressed="false">Git</button>
+          <button data-side-view="debug" aria-pressed="false">Отладка</button>
+        </nav>
+        <section id="files-view" class="ut-side-view">
+          <div class="ut-explorer-heading">
             <button
-              id="new-file"
-              class="ut-icon-button"
-              title="Новый файл"
-              aria-label="Новый файл"
+              id="tree-root"
+              class="ut-root-name"
+              title="Выбрать корень проекта"
             >
-              <svg><use href="#i-file" /></svg><span>+</span></button
-            ><button
-              id="new-folder"
-              class="ut-icon-button"
-              title="Новая папка"
-              aria-label="Новая папка"
-            >
-              <svg><use href="#i-folder" /></svg><span>+</span></button
-            ><button
-              id="refresh-tree"
-              class="ut-icon-button"
-              title="Обновить дерево"
-              aria-label="Обновить дерево"
-            >
-              <svg><use href="#i-refresh" /></svg>
+              Проект
             </button>
+            <div class="ut-tree-tools">
+              <button
+                id="new-file"
+                class="ut-icon-button"
+                title="Новый файл"
+                aria-label="Новый файл"
+              >
+                <svg><use href="#i-file" /></svg><span>+</span></button
+              ><button
+                id="new-folder"
+                class="ut-icon-button"
+                title="Новая папка"
+                aria-label="Новая папка"
+              >
+                <svg><use href="#i-folder" /></svg><span>+</span></button
+              ><button
+                id="refresh-tree"
+                class="ut-icon-button"
+                title="Обновить дерево"
+                aria-label="Обновить дерево"
+              >
+                <svg><use href="#i-refresh" /></svg>
+              </button>
+            </div>
           </div>
-        </div>
-        <div
-          id="file-list"
-          class="ut-file-list"
-          role="tree"
-          aria-label="Файлы проекта"
-        ></div>
-        <details id="outline-section" class="ut-outline ut-hidden" open>
-          <summary>Структура файла</summary>
           <div
-            id="element-outline"
-            class="ut-outline-tree"
-            aria-label="Структуры, поля и методы"
+            id="file-list"
+            class="ut-file-list"
+            role="tree"
+            aria-label="Файлы проекта"
           ></div>
-        </details>
-        <div
-          id="selected-folder"
-          class="ut-selected-folder"
-          title="Папка для новых файлов"
-        >
-          /
-        </div>
+          <details id="outline-section" class="ut-outline ut-hidden" open>
+            <summary>Структура файла</summary>
+            <div
+              id="element-outline"
+              class="ut-outline-tree"
+              aria-label="Структуры, поля и методы"
+            ></div>
+          </details>
+          <div
+            id="selected-folder"
+            class="ut-selected-folder"
+            title="Папка для новых файлов"
+          >
+            /
+          </div>
+        </section>
+        <section
+          id="todos-view"
+          class="ut-side-view ut-hidden"
+          aria-label="TODO проекта"
+        ></section>
+        <section
+          id="git-view"
+          class="ut-side-view ut-hidden"
+          aria-label="Git проекта"
+        ></section>
+        <section
+          id="debug-view"
+          class="ut-side-view ut-hidden"
+          aria-label="Отладка Элемента"
+        ></section>
       </aside>
       <div
         id="explorer-resizer"
@@ -243,6 +267,12 @@
               aria-label="Форматировать код"
             >
               <svg><use href="#i-format" /></svg></button
+            ><button
+              id="debug-start"
+              class="ut-secondary"
+              title="Начать / продолжить отладку · Ctrl+F5"
+            >
+              Отладка</button
             ><button
               id="run"
               class="ut-primary ut-run-button"
@@ -383,7 +413,7 @@
       </button>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        UnexploredEditor <span id="app-version">0.3.0</span>
+        UnexploredEditor <span id="app-version">0.4.0</span>
       </p>
     </dialog>
     <dialog id="create-project-dialog" class="ut-dialog">
@@ -454,5 +484,18 @@
     <div id="toast" class="ut-toast ut-hidden" role="status"></div>
     <script src="/vendor/vs/loader.js"></script>
     <script type="module" src="/workbench.js"></script>
+    <dialog id="git-diff-dialog" class="ut-dialog ut-git-diff-dialog">
+      <div class="ut-dialog-heading">
+        <h2 id="git-diff-title">Изменения</h2>
+        <button
+          class="ut-icon-button"
+          data-close="git-diff-dialog"
+          aria-label="Закрыть изменения"
+        >
+          ×
+        </button>
+      </div>
+      <pre id="git-diff-text" tabindex="0"></pre>
+    </dialog>
   </body>
 </html>
