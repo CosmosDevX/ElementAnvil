@@ -613,6 +613,17 @@
         </div>
       </form>
     </dialog>
+    <dialog id="delete-file-dialog" class="ut-dialog">
+      <div class="ut-dialog-heading"><h2>Удалить файл?</h2></div>
+      <p id="delete-file-message"></p>
+      <p id="delete-file-unsaved" class="ut-error ut-hidden">
+        Несохранённые изменения в редакторе будут потеряны.
+      </p>
+      <div class="ut-dialog-buttons">
+        <button id="delete-file-cancel" class="ut-secondary">Отмена</button>
+        <button id="delete-file-confirm" class="ut-primary">В корзину</button>
+      </div>
+    </dialog>
     <dialog id="unsaved-dialog" class="ut-dialog">
       <div class="ut-dialog-heading"><h2>Несохранённые изменения</h2></div>
       <p id="unsaved-message"></p>

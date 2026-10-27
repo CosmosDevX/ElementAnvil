@@ -7,6 +7,7 @@ import {
   writeFile,
   rm,
   symlink,
+  rename,
 } from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -26,6 +27,47 @@ async function fixture(t) {
   ).initialize();
   return { folder, manager };
 }
+test("delete moves only a validated project file to trash and clears the entry", async (t) => {
+  const { folder, manager } = await fixture(t);
+  const project = await manager.createProject(folder, "sample", "sbsl");
+  await manager.save(
+    "unexplored.json",
+    JSON.stringify({ entry: project.entry }),
+  );
+  const destination = path.join(folder, "trash.sbsl");
+  let called = false;
+  const trash = async (filename) => {
+    called = true;
+    await rename(filename, destination);
+  };
+  await assert.rejects(
+    manager.deleteFile("../outside.sbsl", project.id, trash),
+  );
+  await assert.rejects(manager.deleteFile("Модули", project.id, trash));
+  await assert.rejects(manager.deleteFile("Скрипт.sbsl", "stale", trash));
+  assert.equal(called, false);
+  const pendingSave = manager.save(
+    "Скрипт.sbsl",
+    "метод Скрипт()\n// latest save before trash\n;\n",
+  );
+  const result = await manager.deleteFile("Скрипт.sbsl", project.id, trash);
+  await pendingSave;
+  assert.equal(result.project.entry, null);
+  assert.match(await readFile(destination, "utf8"), /метод Скрипт/);
+  assert.match(await readFile(destination, "utf8"), /latest save before trash/);
+  assert.equal(
+    JSON.parse((await manager.read("unexplored.json")).text).entry,
+    null,
+  );
+  await assert.rejects(manager.read("Скрипт.sbsl"), { code: "ENOENT" });
+  await manager.create("Сохранить.txt", "file");
+  await assert.rejects(
+    manager.deleteFile("Сохранить.txt", project.id, async () => {
+      throw Error("Trash unavailable");
+    }),
+  );
+  assert.equal((await manager.read("Сохранить.txt")).text, "");
+});
 test("Element template creates runnable entry files and nested project trees", async (t) => {
   const { folder, manager } = await fixture(t);
   const element = await manager.createProject(folder, "элемент", "sbsl");

@@ -1,4 +1,5 @@
 import { themes } from "./themes.js";
+import { diskAction, replaceDocumentText } from "./document-sync.js";
 import { installIcons, icon } from "./icons.js";
 import { projectFile } from "./document-uri.js";
 import { DevTools } from "./devtools.js";
@@ -31,6 +32,8 @@ const models = new Map(),
 const diagnosticErrors = new Map();
 const pendingWrites = new Set();
 const externalConflicts = new Set();
+const diskTexts = new WeakMap();
+const deletingFiles = new Set();
 let silentModelChange = false;
 let session,
   editor,
@@ -240,7 +243,7 @@ function renderRecent() {
   }
 }
 async function save(name = currentName) {
-  if (!name || !models.has(name)) return;
+  if (!name || !models.has(name) || deletingFiles.has(name)) return;
   clearTimeout(saves.get(name));
   saves.delete(name);
   const model = models.get(name),
@@ -252,8 +255,10 @@ async function save(name = currentName) {
   } finally {
     pendingWrites.delete(pending);
   }
-  if (models.get(name) === model && model.getValue() === text)
-    dirty.delete(name);
+  if (models.get(name) === model) {
+    diskTexts.set(model, text);
+    if (model.getValue() === text) dirty.delete(name);
+  }
   externalConflicts.delete(name);
   updateStatus();
   renderTabs();
@@ -370,6 +375,7 @@ async function applyRelocation(result) {
     name,
     next: remap(name),
     text: models.get(name).getValue(),
+    diskText: diskTexts.get(models.get(name)),
     dirty: dirty.has(name),
     view: views.get(name),
   }));
@@ -387,7 +393,8 @@ async function applyRelocation(result) {
   }
   session.project = result.project;
   for (const snapshot of snapshots) {
-    createModel(snapshot.next, snapshot.text);
+    const model = createModel(snapshot.next, snapshot.text);
+    diskTexts.set(model, snapshot.diskText);
     if (snapshot.dirty) {
       dirty.add(snapshot.next);
       scheduleSave(snapshot.next);
@@ -407,7 +414,8 @@ async function applyRelocation(result) {
     if (model && !dirty.has(result.configChanged.path)) {
       silentModelChange = true;
       try {
-        model.setValue(result.configChanged.text);
+        replaceDocumentText(model, result.configChanged.text);
+        diskTexts.set(model, result.configChanged.text);
       } finally {
         silentModelChange = false;
       }
@@ -466,8 +474,9 @@ async function moveEntry(path, directory) {
   }
 }
 async function synchronizeProject(result) {
+  const relocating = result.events.some((event) => event.moves.length);
   fileMutation = true;
-  editor.updateOptions({ readOnly: true });
+  if (relocating) editor.updateOptions({ readOnly: true });
   updateStatus();
   try {
     // Keep local edits on disk conflicts. An explicit Save is required to overwrite.
@@ -489,9 +498,9 @@ async function synchronizeProject(result) {
         await applyRelocation({ ...move, project: result.project });
         event.changed.push(...movedDocuments);
       }
-      for (const name of [...event.changed, ...event.deleted]) {
+      for (const name of new Set([...event.changed, ...event.deleted])) {
         if (!models.has(name)) continue;
-        if (dirty.has(name) || event.deleted.includes(name)) {
+        if (event.deleted.includes(name)) {
           externalConflicts.add(name);
           clearTimeout(saves.get(name));
           saves.delete(name);
@@ -501,10 +510,35 @@ async function synchronizeProject(result) {
         } else {
           try {
             const file = await api("file/read", projectData({ path: name }));
+            if (session.project.id !== result.project.id) return;
+            const model = models.get(name);
+            if (!model || model.isDisposed()) continue;
+            const action = diskAction(
+              model,
+              file.text,
+              diskTexts.get(model),
+              dirty.has(name),
+            );
+            if (action === "equal") {
+              diskTexts.set(model, file.text);
+              dirty.delete(name);
+              continue;
+            }
+            if (action === "echo") continue;
+            if (action === "conflict") {
+              externalConflicts.add(name);
+              clearTimeout(saves.get(name));
+              saves.delete(name);
+              notice(
+                `«${name}» изменён вне редактора. Буфер сохранён; автосохранение приостановлено до Ctrl+S.`,
+              );
+              continue;
+            }
             const view = name === currentName ? editor.saveViewState() : null;
             silentModelChange = true;
             try {
-              models.get(name)?.setValue(file.text);
+              replaceDocumentText(model, file.text);
+              diskTexts.set(model, file.text);
             } finally {
               silentModelChange = false;
             }
@@ -531,10 +565,12 @@ async function synchronizeProject(result) {
     updateStatus();
   } finally {
     fileMutation = false;
-    editor.updateOptions({
-      readOnly: devtools.debug.active || devtools.gitBusy,
-    });
+    if (relocating)
+      editor.updateOptions({
+        readOnly: devtools.debug.active || devtools.gitBusy,
+      });
     updateStatus();
+    for (const name of dirty) scheduleSave(name);
   }
 }
 
@@ -616,6 +652,7 @@ function createModel(name, text) {
   const model = monaco.editor.createModel(text, languageOf(name), uri);
   model.updateOptions({ tabSize: 4, insertSpaces: true });
   models.set(name, model);
+  diskTexts.set(model, text);
   model.onDidChangeContent(() => {
     if (silentModelChange) return;
     dirty.add(name);
@@ -706,9 +743,9 @@ function renderTabs() {
     tabs.append(tab);
   }
 }
-async function closeFile(name) {
+async function closeFile(name, discard = false) {
   if (!models.has(name)) return;
-  if (dirty.has(name)) {
+  if (dirty.has(name) && !discard) {
     const answer =
       session.settings.autoSave === false
         ? await confirmUnsaved([name])
@@ -776,7 +813,7 @@ function updateStatus() {
         : "Элемент · базовые подсказки"
       : "";
   $("format").disabled = !model || !serviceAvailable(lang);
-  $("save").disabled = !model;
+  $("save").disabled = !model || deletingFiles.has(currentName);
   $("run").disabled =
     running ||
     fileMutation ||
@@ -926,6 +963,64 @@ async function refreshDiagnostics() {
     }
   } finally {
     diagnosticBusy = false;
+  }
+}
+async function deleteFile(item) {
+  if (fileMutation || running || devtools.debug.active || devtools.gitBusy)
+    return;
+  const projectId = session.project.id,
+    dialog = $("delete-file-dialog");
+  $("delete-file-message").textContent =
+    `«${item.path}» будет перемещён в корзину Windows.`;
+  $("delete-file-unsaved").classList.toggle("ut-hidden", !dirty.has(item.path));
+  const confirmed = await new Promise((resolve) => {
+    dialog.returnValue = "cancel";
+    dialog.addEventListener(
+      "close",
+      () => resolve(dialog.returnValue === "delete"),
+      { once: true },
+    );
+    $("delete-file-cancel").onclick = () => dialog.close("cancel");
+    $("delete-file-confirm").onclick = () => dialog.close("delete");
+    dialog.showModal();
+    $("delete-file-cancel").focus();
+  });
+  if (!confirmed || session.project.id !== projectId) return;
+  fileMutation = true;
+  deletingFiles.add(item.path);
+  editor.updateOptions({ readOnly: true });
+  updateStatus();
+  clearTimeout(saves.get(item.path));
+  saves.delete(item.path);
+  try {
+    await Promise.all([...pendingWrites]);
+    const result = await api("file/delete", projectData({ path: item.path }));
+    session.project = result.project;
+    await closeFile(item.path, true);
+    externalConflicts.delete(item.path);
+    if (result.configChanged) {
+      const model = models.get(result.configChanged.path);
+      if (model && !dirty.has(result.configChanged.path)) {
+        silentModelChange = true;
+        try {
+          replaceDocumentText(model, result.configChanged.text);
+          diskTexts.set(model, result.configChanged.text);
+        } finally {
+          silentModelChange = false;
+        }
+      }
+    }
+    await refreshTree();
+    await devtools.refreshGit();
+    notice(`«${item.path}» перемещён в корзину.`);
+  } finally {
+    deletingFiles.delete(item.path);
+    fileMutation = false;
+    editor.updateOptions({
+      readOnly: devtools.debug.active || devtools.gitBusy,
+    });
+    updateStatus();
+    for (const name of dirty) scheduleSave(name);
   }
 }
 async function stopProgram() {
@@ -1485,6 +1580,8 @@ async function initialize() {
     run,
     debug: (path) => devtools.debug.start(path),
     nameAction: openNameAction,
+    delete: deleteFile,
+    canDelete: () => session.trash,
     busy: () =>
       running ||
       projectBusy ||

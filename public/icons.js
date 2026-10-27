@@ -1,8 +1,10 @@
-// Original transparent bitmap icons generated for Element Anvil.
+// Three outline icons share one grid, stroke and palette; remaining PNGs are
+// original ImageGen assets. Vector icons do not need the bitmap padding scale.
 export function icon(name) {
   const image = document.createElement("img");
-  image.src = `/icons/${name}.png`;
-  image.className = "ut-generated-icon";
+  const vector = ["folder", "element-file", "http"].includes(name);
+  image.src = `/icons/${name}.${vector ? "svg" : "png"}`;
+  image.className = "ut-generated-icon" + (vector ? " ut-outline-icon" : "");
   image.alt = "";
   image.setAttribute("aria-hidden", "true");
   image.width = image.height = 20;

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile, rename, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { stripVTControlCharacters } from "node:util";
@@ -16,6 +16,11 @@ backend.configureDesktop({
   terminal: true,
   createFolder: async () => temporary,
   openFolder: async () => path.join(temporary, "sample"),
+  trashFile: async (filename) =>
+    rename(
+      filename,
+      path.join(temporary, "trashed-" + path.basename(filename)),
+    ),
 });
 const session = await fetch(origin + "/api/session").then((r) => r.json());
 let projectId,
@@ -71,8 +76,15 @@ try {
     "run",
     "format",
   ]) {
-    const response = await fetch(origin + `/icons/${icon}.png`);
+    const vector = ["folder", "element-file", "http"].includes(icon);
+    const response = await fetch(
+      origin + `/icons/${icon}.${vector ? "svg" : "png"}`,
+    );
     assert.equal(response.status, 200);
+    if (vector) {
+      assert.match(await response.text(), /<svg/);
+      continue;
+    }
     const bytes = new Uint8Array(await response.arrayBuffer());
     assert.deepEqual([...bytes.slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   }
@@ -296,6 +308,16 @@ try {
   });
   assert.equal(renamed.project.entry, "Пуск.sbsl");
   console.log("PASS: packaged rename updates project entry");
+  const deleted = await post("file/delete", { path: "Пуск.sbsl" });
+  assert.equal(deleted.project.entry, null);
+  assert.equal(
+    await readFile(path.join(temporary, "trashed-Пуск.sbsl"), "utf8"),
+    moduleText,
+  );
+  assert.equal((await raw("file/read", { path: "Пуск.sbsl" })).ok, false);
+  console.log(
+    "PASS: packaged file deletion uses trash callback and clears project entry",
+  );
 } finally {
   await raw("debug/stop").catch(() => {});
   await backend.shutdown();

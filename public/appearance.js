@@ -30,6 +30,22 @@ export function applyAppearance(monaco, editor, settings) {
   };
   for (const [name, value] of Object.entries(variables))
     document.documentElement.style.setProperty("--" + name, value);
+  const menuColors = {
+    "menu.background": p.widget,
+    "menu.foreground": p.fg,
+    "menu.border": p.border,
+    "menu.selectionBackground": p.line,
+    "menu.selectionForeground": p.fg,
+    "menu.selectionBorder": "#00000000",
+    "menu.separatorBackground": p.border,
+  };
+  // Monaco 0.57 mounts menus in a shadow root outside .monaco-editor. Its
+  // standalone theme CSS never reaches that host; custom properties do inherit.
+  for (const [name, value] of Object.entries(menuColors))
+    document.documentElement.style.setProperty(
+      "--vscode-" + name.replaceAll(".", "-"),
+      value,
+    );
   monaco.editor.defineTheme("undertow", {
     base: p.light ? "vs" : "vs-dark",
     inherit: true,
@@ -47,6 +63,10 @@ export function applyAppearance(monaco, editor, settings) {
       { token: "identifier", foreground: p.fg.slice(1) },
     ],
     colors: {
+      ...menuColors,
+      foreground: p.fg,
+      "keybindingLabel.foreground": p.fg,
+      descriptionForeground: p.muted,
       "editor.background": p.bg,
       "editor.foreground": p.fg,
       "editorLineNumber.foreground": p.muted,

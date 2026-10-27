@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { discover, runtimeDir } from "../lib/runtime.mjs";
 import { LanguageServer, documentKey } from "../lib/lsp.mjs";
+import { structureCompletions } from "../public/element-completions.js";
 const runtime = await discover();
 assert.ok(runtime.elementLsp, "Нужны установленные Элемент и Java");
 const directory = await mkdtemp(path.join(runtimeDir, "lsp-check-"));
@@ -115,6 +116,35 @@ try {
   }
   server.close("Скрипт.sbsl");
   assert.equal(server.diagnostics.size, 0);
+  const memberText =
+    "структура Счетчик\n    пер Значение: Число = 0\n    метод Добавить()\n    ;\n    метод Проверить()\n        этот.\n    ;\n;\n";
+  await writeFile(path.join(directory, "Члены.sbsl"), memberText);
+  const memberUri = await server.synchronize("Члены.sbsl", memberText);
+  await server.waitForDocument(memberUri, memberText, {
+    line: 0,
+    character: 12,
+  });
+  const rawMembers = await server.request("textDocument/completion", {
+    textDocument: { uri: memberUri },
+    position: { line: 5, character: 13 },
+    context: { triggerKind: 2, triggerCharacter: "." },
+  });
+  const nativeMembers = Array.isArray(rawMembers)
+    ? rawMembers
+    : rawMembers?.items || [];
+  assert.ok(nativeMembers.some((item) => item.label.startsWith("Значение")));
+  assert.ok(nativeMembers.some((item) => item.label.startsWith("Добавить")));
+  const implicitText = memberText.replace("этот.", "Доб");
+  await server.synchronize("Члены.sbsl", implicitText);
+  const supplements = structureCompletions(implicitText, {
+    lineNumber: 6,
+    column: 12,
+  });
+  assert.ok(supplements.some((item) => item.label === "Добавить"));
+  server.close("Члены.sbsl");
+  console.log(
+    "PASS: native structure members after dot and implicit receiver completion supplement",
+  );
 } finally {
   server.stop();
 }

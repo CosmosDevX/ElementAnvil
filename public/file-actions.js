@@ -102,6 +102,12 @@ export class FileActions {
     );
     add("Копировать путь", () => this.ctx.copy(this.ctx.absolute(item.path)));
     add("Копировать относительный путь", () => this.ctx.copy(item.path));
+    if (item.kind === "file")
+      add(
+        "Удалить…",
+        () => this.ctx.delete(item),
+        busy || !this.ctx.canDelete(),
+      );
     this.menu.classList.remove("ut-hidden");
     const rect = anchor.getBoundingClientRect();
     this.menu.style.left =

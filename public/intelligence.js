@@ -1,4 +1,5 @@
 import { localCompletions, entries } from "./languages.js";
+import { structureCompletions } from "./element-completions.js";
 const nativeItems = new WeakMap();
 const range = (r) => ({
   startLineNumber: r.start.line + 1,
@@ -91,15 +92,61 @@ export function setupProviders(monaco, { assist, serviceAvailable, event }) {
         const current = scanned.at(-1)?.type || "";
         if (current.includes("comment") || current.includes("string"))
           return { suggestions: [] };
+        const source = model.getValue(),
+          revision = model.getVersionId();
+        const word = model.getWordUntilPosition(p);
+        const localItem = (item) => ({
+          label: item.label,
+          kind: monaco.languages.CompletionItemKind[item.kind],
+          detail: item.detail,
+          documentation: markdown(item.doc),
+          insertText: item.insert || item.label,
+          insertTextRules:
+            item.snippet || (item.snippet === undefined && item.insert)
+              ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+              : undefined,
+          range: new monaco.Range(
+            p.lineNumber,
+            word.startColumn,
+            p.lineNumber,
+            word.endColumn,
+          ),
+        });
+        const members = structureCompletions(source, p).map(localItem);
         if (serviceAvailable(language)) {
           try {
-            const { result } = await assist(model, "completion", p, {}, token);
-            if (token.isCancellationRequested) return { suggestions: [] };
+            const { result } = await assist(
+              model,
+              "completion",
+              p,
+              {
+                context: {
+                  triggerKind: context.triggerKind,
+                  triggerCharacter: context.triggerCharacter,
+                },
+              },
+              token,
+            );
+            if (
+              token.isCancellationRequested ||
+              model.isDisposed() ||
+              model.getVersionId() !== revision
+            )
+              return { suggestions: [] };
+            const native = (
+              Array.isArray(result) ? result : result?.items || []
+            ).map((item) => completionItem(item, model, p));
+            const names = new Set(
+              native.map(
+                (item) =>
+                  String(item.label).match(/^[\p{L}_][\p{L}\p{N}_]*/u)?.[0],
+              ),
+            );
             return {
-              suggestions: (Array.isArray(result)
-                ? result
-                : result?.items || []
-              ).map((item) => completionItem(item, model, p)),
+              suggestions: [
+                ...native,
+                ...members.filter((item) => !names.has(item.label)),
+              ],
               incomplete: !!result?.isIncomplete,
             };
           } catch (error) {
@@ -107,27 +154,21 @@ export function setupProviders(monaco, { assist, serviceAvailable, event }) {
             event(`Подсказки: ${error.message}`);
           }
         }
-        const word = model.getWordUntilPosition(p);
+        if (
+          token.isCancellationRequested ||
+          model.isDisposed() ||
+          model.getVersionId() !== revision
+        )
+          return { suggestions: [] };
         const offset = model.getOffsetAt(p);
+        const names = new Set(members.map((item) => item.label));
         return {
-          suggestions: localCompletions(language, model.getValue(), offset).map(
-            (item) => ({
-              label: item.label,
-              kind: monaco.languages.CompletionItemKind[item.kind],
-              detail: item.detail,
-              documentation: markdown(item.doc),
-              insertText: item.insert || item.label,
-              insertTextRules: item.insert
-                ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-                : undefined,
-              range: new monaco.Range(
-                p.lineNumber,
-                word.startColumn,
-                p.lineNumber,
-                word.endColumn,
-              ),
-            }),
-          ),
+          suggestions: [
+            ...members,
+            ...localCompletions(language, source, offset)
+              .filter((item) => !names.has(item.label))
+              .map(localItem),
+          ],
         };
       },
       async resolveCompletionItem(item, token) {

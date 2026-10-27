@@ -127,6 +127,7 @@ else {
       backend.configureDesktop({
         terminal: true,
         reveal: async (filename) => shell.showItemInFolder(filename),
+        trashFile: async (filename) => shell.trashItem(filename),
         copyText: async (text) => clipboard.writeText(text),
         openExternal: async (url) => openDocumentation(url),
         hasPendingFile: () => pendingFiles.length > 0,

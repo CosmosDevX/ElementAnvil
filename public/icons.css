@@ -9,6 +9,9 @@
   pointer-events: none;
   user-select: none;
 }
+.ut-outline-icon {
+  transform: none;
+}
 .ut-side-tabs {
   height: 54px;
 }

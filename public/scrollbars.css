@@ -25,3 +25,11 @@
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
+.monaco-menu .monaco-action-bar .action-item .action-label,
+.monaco-menu .monaco-action-bar .action-item .keybinding {
+  color: var(--text);
+}
+.monaco-menu .monaco-action-bar .action-item.disabled .action-label,
+.monaco-menu .monaco-action-bar .action-item.disabled .keybinding {
+  color: var(--muted);
+}

@@ -1,12 +1,14 @@
 # Иконки интерфейса Element Anvil
 
-Созданы встроенным ImageGen 27 октября 2026 года; CLI и API-ключ не использовались. Каждый файл сгенерирован отдельно с transparent_background=true. Оригинальные PNG с альфа-каналом сохранены в public/icons; интерфейс уменьшает их средствами CSS. Иконка приложения не менялась.
+Первоначальный набор создан встроенным ImageGen 27 октября 2026 года; CLI и API-ключ не использовались. Каждый PNG сгенерирован отдельно с transparent_background=true; интерфейс уменьшает его средствами CSS. Иконка приложения не менялась.
+
+По просьбе пользователя папка, файл Элемента и HTTP-клиент заменены единым векторным набором: `public/icons/folder.svg`, `element-file.svg`, `http.svg`. Сетка 24×24, линия 1.7 px, одинаковые скругления и янтарный цвет. PNG этих трёх иконок удалены из сборки. Ниже сохранены первоначальные промпты для истории происхождения растрового набора; остальные восемь PNG используются в интерфейсе.
 
 Полные финальные промпты:
 
 ## folder.png
 
-Путь: `public/icons/folder.png`.
+Текущий файл: `public/icons/folder.svg`; первоначальный PNG заменён.
 
 ```text
 Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a simple open file folder, amber outline. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
@@ -14,7 +16,7 @@ Use case: logo-brand. Asset type: one production toolbar icon for the Element An
 
 ## element-file.png
 
-Путь: `public/icons/element-file.png`.
+Текущий файл: `public/icons/element-file.svg`; первоначальный PNG заменён.
 
 ```text
 Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a single document with folded corner containing a geometric amber diamond between two code angle brackets, for a 1C Element source file. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
@@ -54,7 +56,7 @@ Use case: logo-brand. Asset type: one production toolbar icon for the Element An
 
 ## http.png
 
-Путь: `public/icons/http.png`.
+Текущий файл: `public/icons/http.svg`; первоначальный PNG заменён.
 
 ```text
 Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a small globe grid with a pair of opposing arrows, muted teal and ivory. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
