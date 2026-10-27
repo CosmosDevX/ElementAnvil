@@ -104,7 +104,6 @@ export class DebugView {
     ctx.editor.addAction({
       id: "unexplored-breakpoint",
       label: "Переключить точку останова",
-      keybindings: [monaco.KeyCode.F9],
       precondition: "editorTextFocus && editorLangId == sbsl",
       run: () => this.toggle(ctx.editor.getPosition().lineNumber),
     });
@@ -164,6 +163,19 @@ export class DebugView {
       this.id = result.id;
       this.consume(result);
     } catch (error) {
+      // A compilation error may finish the process before DAP can attach.
+      // Recover its stdout/stderr even though start did not return a session id.
+      try {
+        this.consume(
+          await this.ctx.api("debug/state", {
+            projectId: this.ctx.project().id,
+            after: 0,
+          }),
+        );
+      } catch {
+        /* The original startup error is still shown below. */
+      }
+      this.ctx.output(error.message, "ut-console-error");
       this.active = false;
       this.state = "idle";
       this.ctx.editor.updateOptions({ readOnly: false });

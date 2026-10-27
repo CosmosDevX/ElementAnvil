@@ -32,7 +32,7 @@
   },
   "build": {
     "appId": "dev.cosmosdevx.unexplorededitor",
-    "productName": "UnexploredEditor",
+    "productName": "Element Anvil",
     "directories": {
       "output": "release"
     },
@@ -59,7 +59,7 @@
         "nsis"
       ],
       "icon": "build/icon.ico",
-      "artifactName": "UnexploredEditor-${version}-Portable.exe",
+      "artifactName": "ElementAnvil-${version}-Portable.exe",
       "signAndEditExecutable": true
     },
     "portable": {
@@ -78,8 +78,8 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "UnexploredEditor-${version}-Setup.exe",
-      "shortcutName": "UnexploredEditor",
+      "artifactName": "ElementAnvil-${version}-Setup.exe",
+      "shortcutName": "Element Anvil",
       "createDesktopShortcut": true
     }
   },

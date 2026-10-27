@@ -12,6 +12,9 @@ import { HttpClient } from "./http-client.js";
 import { ElementOutline, registerElementSymbols } from "./element-outline.js";
 import { MarkdownPreview } from "./markdown-preview.js";
 import { markdownTarget } from "./markdown-path.js";
+import { Keybindings, defaultKeys, keyLabel } from "./keybindings.js";
+import { ProjectSearch } from "./project-search.js";
+import { selectionMatches } from "./selection-matches.js";
 
 const $ = (id) => document.getElementById(id);
 const models = new Map(),
@@ -33,6 +36,7 @@ let session,
   devtools,
   fileActions,
   terminalPanel,
+  projectSearch,
   nameAction,
   fileMutation = false,
   currentName = null,
@@ -65,6 +69,8 @@ const languages = {
 const languageOf = (name) =>
   languages[name?.split(".").at(-1)?.toLowerCase()] || "plaintext";
 const basename = (name) => name?.split("/").at(-1) || "";
+const shortcut = (id) =>
+  keyLabel(session.settings.keybindings?.[id] ?? defaultKeys[id]);
 const eventTargetIsTerminal = (event) => !!event.target.closest?.("#terminal");
 const serviceAvailable = (language) =>
   language === "sbsl" && session.elementLsp;
@@ -115,13 +121,23 @@ async function streamRun(data) {
     decoder = new TextDecoder();
   let buffer = "",
     result;
+  const received = { stdout: 0, stderr: 0 };
   const consume = (line) => {
     if (!line.trim()) return;
     const item = JSON.parse(line);
     if (item.error) throw new Error(item.error);
-    if (item.channel)
+    if (item.channel) {
       append(item.text, item.channel === "stderr" ? "ut-console-error" : "");
-    if (item.result) result = item.result;
+      if (Object.hasOwn(received, item.channel))
+        received[item.channel] += item.text.length;
+    }
+    if (item.result) {
+      result = item.result;
+      for (const channel of ["stdout", "stderr"]) {
+        const tail = result[channel]?.slice(received[channel]);
+        if (tail) append(tail, channel === "stderr" ? "ut-console-error" : "");
+      }
+    }
   };
   while (true) {
     const { value, done } = await reader.read();
@@ -166,7 +182,7 @@ async function assist(model, operation, p, extra = {}, token) {
 }
 function showHome() {
   $("http-workspace").classList.add("ut-hidden");
-  document.title = "UnexploredEditor";
+  document.title = "Element Anvil";
   anomalies?.end();
   $("workbench").classList.add("ut-hidden");
   $("home").classList.remove("ut-hidden");
@@ -677,8 +693,8 @@ function updateStatus() {
   }
   httpClient?.setProjectRunning(running);
   document.title = currentName
-    ? `${basename(currentName)} — ${session.project?.name || ""} — UnexploredEditor`
-    : "UnexploredEditor";
+    ? `${basename(currentName)} — ${session.project?.name || ""} — Element Anvil`
+    : "Element Anvil";
   const model = editor?.getModel(),
     lang = model?.getLanguageId(),
     p = editor?.getPosition();
@@ -718,10 +734,11 @@ function updateStatus() {
   const target = session.project?.entry || currentName;
   $("run").title = running
     ? `Выполняется: ${runningName || target}`
-    : `Запустить проект: ${target || "не выбран .sbsl"} · F5`;
+    : `Запустить проект: ${target || "не выбран .sbsl"} · ${shortcut("run")}`;
   $("debug-start").title = devtools?.debug.active
     ? `Продолжить отладку: ${devtools.debug.filename}`
-    : `Отладить проект: ${target || "не выбран .sbsl"} · Ctrl+F5`;
+    : `Отладить проект: ${target || "не выбран .sbsl"} · ${shortcut("debug")}`;
+  $("run").querySelector("kbd").textContent = shortcut("run");
   $("run-file-choice").disabled = $("run").disabled || lang !== "sbsl";
   $("debug-file-choice").disabled =
     $("debug-start").disabled || devtools?.debug.active || lang !== "sbsl";
@@ -913,6 +930,20 @@ function newEntry(kind) {
   $("entry-name").focus();
 }
 function renderSettings() {
+  for (const [id, command, label] of [
+    ["project-symbols", "symbols", "Структуры и методы проекта"],
+    ["save", "save", "Сохранить"],
+    ["format", "format", "Форматировать"],
+    ["open-project", "openProject", "Открыть папку"],
+    ["open-file", "openFile", "Открыть файл"],
+    ["settings-button", "settings", "Настройки"],
+    ["toggle-console", "console", "Показать или скрыть вывод"],
+    ["terminal-tab", "terminal", "Терминал"],
+  ])
+    $(id).title = `${label} · ${shortcut(command)}`;
+  $("run-project-choice").textContent = `Запустить проект · ${shortcut("run")}`;
+  $("debug-project-choice").textContent =
+    `Отладить проект · ${shortcut("debug")}`;
   for (const button of document.querySelectorAll("[data-theme-choice]"))
     button.setAttribute(
       "aria-pressed",
@@ -933,6 +964,7 @@ function settings(patch) {
   session.settings = { ...session.settings, ...patch };
   applyAppearance(monaco, editor, session.settings);
   renderSettings();
+  updateStatus();
   if (Object.hasOwn(patch, "autoSave")) {
     for (const timer of saves.values()) clearTimeout(timer);
     saves.clear();
@@ -954,6 +986,8 @@ function settings(patch) {
     });
 }
 function bind() {
+  $("project-symbols").onclick = () =>
+    session.project ? projectSearch.show() : notice("Сначала открой проект.");
   $("http-client-button").onclick = async () => {
     try {
       await httpClient.open();
@@ -1081,71 +1115,48 @@ function bind() {
     $("settings-dialog").close();
     anomalies.trigger();
   };
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (eventTargetIsTerminal(e) && !(ctrl && e.code === "Backquote")) return;
-      if (ctrl && e.code === "Backquote" && session.project) {
-        e.preventDefault();
-        e.stopPropagation();
-        terminalPanel.show().catch(report);
-        return;
-      }
-      if (ctrl && ["KeyB", "KeyJ"].includes(e.code)) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.code === "KeyB") panels.toggleExplorer();
-        else panels.toggleConsole();
-      } else if (ctrl && e.code === "KeyO") {
-        e.preventDefault();
-        e.stopPropagation();
-        projectAction(e.shiftKey ? "project/open" : "project/open-file");
-      } else if (ctrl && e.code === "Comma") {
-        e.preventDefault();
-        $("settings-dialog").showModal();
-        renderSettings();
-      } else if (ctrl && (e.code === "KeyS" || e.key.toLowerCase() === "s")) {
-        e.preventDefault();
-        e.stopPropagation();
-        (httpClient?.visible ? httpClient.flush() : saveAll()).catch(report);
-      } else if (
-        e.key === "F9" &&
-        !$("workbench").classList.contains("ut-hidden")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (editor.getModel())
-          devtools.debug.toggle(editor.getPosition().lineNumber);
-      } else if (
-        e.key === "F5" &&
-        ctrl &&
-        !$("workbench").classList.contains("ut-hidden")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        devtools.debug.start();
-      } else if (e.key === "F5" && e.shiftKey && devtools.debug.active) {
-        e.preventDefault();
-        e.stopPropagation();
-        devtools.debug.command("stop");
-      } else if (["F10", "F11"].includes(e.key) && devtools.debug.active) {
-        e.preventDefault();
-        e.stopPropagation();
-        devtools.debug.command(
-          e.key === "F10" ? "next" : e.shiftKey ? "stepOut" : "stepIn",
-        );
-      } else if (
-        e.key === "F5" &&
-        !$("workbench").classList.contains("ut-hidden")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        run();
-      }
+  const editorCommand = (id) => {
+    editor.focus();
+    editor.trigger("keyboard", id, {});
+  };
+  const shortcuts = {
+    save: () => (httpClient?.visible ? httpClient.flush() : saveAll()),
+    openFile: () => projectAction("project/open-file"),
+    openProject: () => projectAction("project/open"),
+    settings: () => {
+      $("settings-dialog").showModal();
+      renderSettings();
     },
-    true,
-  );
+    explorer: () => panels.toggleExplorer(),
+    console: () => panels.toggleConsole(),
+    terminal: () => terminalPanel.show(),
+    symbols: () => projectSearch.show(),
+    find: () => editorCommand("editor.action.startFindReplaceAction"),
+    replace: () => editorCommand("editor.action.startFindReplaceAction"),
+    definition: () => editorCommand("editor.action.revealDefinition"),
+    format: () => editor.getAction("editor.action.formatDocument")?.run(),
+    comment: () => editorCommand("editor.action.commentLine"),
+    suggest: () => editorCommand("editor.action.triggerSuggest"),
+    run: () => run(),
+    debug: () => devtools.debug.start(),
+    stop: () =>
+      devtools.debug.active ? devtools.debug.command("stop") : api("stop"),
+    breakpoint: () => devtools.debug.toggle(editor.getPosition().lineNumber),
+    next: () => devtools.debug.active && devtools.debug.command("next"),
+    stepIn: () => devtools.debug.active && devtools.debug.command("stepIn"),
+    stepOut: () => devtools.debug.active && devtools.debug.command("stepOut"),
+    anomaly: () => anomalies.trigger(),
+  };
+  new Keybindings({
+    settings: () => session.settings,
+    change: settings,
+    execute: (id) => Promise.resolve(shortcuts[id]()).catch(report),
+    enabled: (id) =>
+      ["settings", "save", "openFile", "openProject"].includes(id) ||
+      (!!session.project && !$("workbench").classList.contains("ut-hidden")),
+    editorFocused: () => editor.hasWidgetFocus() && !!editor.getModel(),
+    terminalFocused: eventTargetIsTerminal,
+  });
   window.addEventListener("beforeunload", (e) => {
     if (dirty.size || httpClient?.dirty) {
       e.preventDefault();
@@ -1176,16 +1187,35 @@ async function initialize() {
     tabSize: 4,
     insertSpaces: true,
     lineNumbersMinChars: 4,
-    occurrencesHighlight: "off",
+    occurrencesHighlight: "singleFile",
     selectionHighlight: false,
     editContext: false,
     accessibilitySupport: "auto",
-    ariaLabel: "Редактор кода UnexploredEditor",
+    ariaLabel: "Редактор кода Element Anvil",
     fixedOverflowWidgets: true,
     quickSuggestions: { other: true, comments: false, strings: false },
     suggest: { showWords: false },
     wordBasedSuggestions: "off",
     scrollbar: { verticalScrollbarSize: 7, horizontalScrollbarSize: 7 },
+  });
+  selectionMatches(editor, monaco);
+  projectSearch = new ProjectSearch({
+    load: () =>
+      api(
+        "symbols",
+        projectData({
+          documents: [...models]
+            .filter(([path]) => /\.sbsl$/i.test(path))
+            .map(([path, model]) => ({ path, text: model.getValue() })),
+        }),
+      ),
+    open: async (item) => {
+      await openFile(item.path);
+      editor.setPosition({ lineNumber: item.lineNumber, column: item.column });
+      editor.revealLineInCenter(item.lineNumber);
+      editor.focus();
+    },
+    report,
   });
   for (const [id, palette] of Object.entries(themes)) {
     const button = document.createElement("button");
@@ -1274,17 +1304,13 @@ async function initialize() {
   editor.addAction({
     id: "unexplored-go-to-definition",
     label: "Перейти к определению",
-    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12],
     precondition: "editorTextFocus && editorLangId == sbsl",
     contextMenuGroupId: "navigation",
     run: () => editor.trigger("keyboard", "editor.action.revealDefinition", {}),
   });
   editor.addAction({
     id: "undertow-anomaly",
-    label: "UnexploredEditor: аномалия",
-    keybindings: [
-      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyH,
-    ],
+    label: "Element Anvil: аномалия",
     run: () => anomalies.trigger(),
   });
   panels = new PanelLayout(editor, session.layout, (layout) =>

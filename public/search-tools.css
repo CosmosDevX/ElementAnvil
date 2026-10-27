@@ -1,0 +1,79 @@
+.ut-selection-match {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  border-radius: 2px;
+}
+.ut-keybindings-settings {
+  margin-top: 20px;
+}
+.ut-settings-dialog {
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+.ut-keybindings-settings summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 8px 0;
+}
+.ut-keybinding {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 7px 0;
+  font-size: 12px;
+}
+.ut-keybinding input {
+  width: 160px;
+  flex: 0 0 160px;
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--mono);
+}
+.ut-symbol-dialog {
+  width: min(720px, 90vw);
+}
+#symbol-query {
+  width: 100%;
+}
+#symbol-results {
+  height: min(420px, 55vh);
+  overflow: auto;
+  margin-top: 12px;
+}
+.ut-symbol-result {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  gap: 4px;
+  border-radius: 4px;
+}
+.ut-symbol-result strong {
+  font-weight: 500;
+}
+.ut-symbol-result small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.ut-symbol-result[aria-selected="true"] {
+  background: var(--accent-bg);
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+#http-note {
+  width: 100%;
+  resize: vertical;
+  min-height: 42px;
+  max-height: 150px;
+  font: inherit;
+}
+.ut-brand img {
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+}
+:root[data-theme="enterprise"] .ut-console-error {
+  color: #a12c35;
+}

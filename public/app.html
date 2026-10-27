@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>UnexploredEditor</title>
-    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>Element Anvil</title>
+    <link rel="icon" href="/icon.png" type="image/png" />
     <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/shell.css" />
     <link rel="stylesheet" href="/http-client.css" />
@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/devtools.css" />
     <link rel="stylesheet" href="/terminal-vendor/xterm.css" />
     <link rel="stylesheet" href="/file-actions.css" />
+    <link rel="stylesheet" href="/search-tools.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -56,9 +57,16 @@
     </svg>
     <header class="ut-header">
       <button id="home-button" class="ut-brand" title="Начальное окно">
-        Unexplored<span>Editor</span></button
+        <img src="/icon.png" alt="" />Element <span>Anvil</span></button
       ><span id="project-title" class="ut-project-title"></span>
       <div class="ut-header-actions">
+        <button
+          id="project-symbols"
+          class="ut-text-button"
+          title="Структуры и методы проекта · Ctrl+I"
+        >
+          ⌕ Символы
+        </button>
         <button
           id="http-client-button"
           class="ut-text-button"
@@ -452,10 +460,48 @@
       ><button id="test-anomaly" class="ut-secondary ut-hidden">
         Проверить аномалию
       </button>
+      <details class="ut-keybindings-settings">
+        <summary>Горячие клавиши</summary>
+        <p class="ut-console-subtle">
+          Нажми на сочетание и введи новое. Backspace — отключить.
+        </p>
+        <div id="keybindings-list"></div>
+        <p id="keybindings-error" class="ut-console-error" role="status"></p>
+        <button id="keybindings-reset" class="ut-secondary" type="button">
+          Сбросить горячие клавиши
+        </button>
+      </details>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        UnexploredEditor <span id="app-version">0.4.1</span>
+        Element Anvil <span id="app-version">0.4.1</span>
       </p>
+    </dialog>
+    <dialog id="symbol-dialog" class="ut-dialog ut-symbol-dialog">
+      <div class="ut-dialog-heading">
+        <h2>Структуры и методы проекта</h2>
+        <button
+          class="ut-icon-button"
+          data-close="symbol-dialog"
+          aria-label="Закрыть поиск символов"
+        >
+          ×
+        </button>
+      </div>
+      <input
+        id="symbol-query"
+        aria-label="Поиск структур и методов"
+        role="combobox"
+        aria-controls="symbol-results"
+        aria-expanded="true"
+        autocomplete="off"
+        placeholder="Имя, структура или путь к файлу"
+      />
+      <div
+        id="symbol-results"
+        role="listbox"
+        aria-label="Символы проекта"
+      ></div>
+      <p id="symbol-status" class="ut-console-subtle" role="status"></p>
     </dialog>
     <dialog id="create-project-dialog" class="ut-dialog">
       <form id="create-project-form">

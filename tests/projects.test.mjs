@@ -198,6 +198,7 @@ test("Settings and recent projects survive a fresh application session", async (
     anomalies: true,
     minimap: false,
     autoSave: false,
+    keybindings: {},
   });
   assert.equal(next.state.recent[0], project.root);
   assert.equal(next.current, null);

@@ -12,7 +12,7 @@ import { mkdir, readdir, copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 
-app.setName("UnexploredEditor");
+app.setName("Element Anvil");
 // Keep existing preferences and recent projects across the rename.
 app.setPath("userData", path.join(app.getPath("appData"), "Undertow"));
 if (process.env.UNDERTOW_DATA_DIR)
@@ -76,7 +76,7 @@ else {
       nativeTheme.themeSource = "dark";
       Menu.setApplicationMenu(null);
       window = new BrowserWindow({
-        title: "UnexploredEditor",
+        title: "Element Anvil",
         icon: path.join(import.meta.dirname, "../build/icon.ico"),
         width: 1440,
         height: 940,
@@ -173,7 +173,7 @@ else {
       await window.loadURL(origin);
     } catch (error) {
       dialog.showErrorBox(
-        "UnexploredEditor — ошибка запуска",
+        "Element Anvil — ошибка запуска",
         error.stack || error.message,
       );
       app.quit();

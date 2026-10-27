@@ -129,6 +129,12 @@ try {
     });
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /Привет, мир!/);
+    const symbols = await post("symbols", {
+      documents: [
+        { path: "Скрипт.sbsl", text: "метод НесохраненныйПоиск()\n;\n" },
+      ],
+    });
+    assert.ok(symbols.items.some((item) => item.name === "НесохраненныйПоиск"));
     console.log("PASS: actual modular Element project execution");
     const chosen = "Выбранный.sbsl",
       chosenText =
@@ -138,6 +144,38 @@ try {
     const selectedRun = await post("run", { path: chosen, text: chosenText });
     assert.match(selectedRun.stdout, /SELECTED_FILE=99/);
     console.log("PASS: selected .sbsl runs independently of the project entry");
+    const failureText =
+      'метод Скрипт()\n    Консоль.Записать("ДО-ОШИБКИ")\n    пер Ноль = 0\n    Консоль.Записать(1 / Ноль)\n;\n';
+    const failureResponse = await request("run", {
+      path: chosen,
+      text: failureText,
+      stream: true,
+    });
+    const failureEvents = (await failureResponse.text())
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.match(
+      failureEvents
+        .filter((x) => x.channel === "stdout")
+        .map((x) => x.text)
+        .join(""),
+      /ДО-ОШИБКИ/,
+    );
+    assert.match(
+      failureEvents
+        .filter((x) => x.channel === "stderr")
+        .map((x) => x.text)
+        .join(""),
+      /Деление на ноль/,
+    );
+    assert.match(failureEvents.at(-1).result.stdout, /ДО-ОШИБКИ/);
+    assert.match(failureEvents.at(-1).result.stderr, /Деление на ноль/);
+    assert.notEqual(failureEvents.at(-1).result.code, 0);
+    await post("save", { path: chosen, text: chosenText });
+    console.log(
+      "PASS: live stdout, runtime errors and final output recovery through executor",
+    );
     if (session.elementDebug) {
       async function debugSource(target, expected) {
         const started = await post("debug/start", { path: chosen, target });
@@ -188,9 +226,15 @@ try {
     await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
     const httpPort = probe.address().port;
     await new Promise((resolve) => probe.close(resolve));
-    const source = await post("file/read", { path: "Скрипт.sbsl" });
+    const webTree = await post("tree");
+    const webEntry = webTree.entries.some(
+      (entry) => entry.path === "ПримерCRUD.sbsl",
+    )
+      ? "ПримерCRUD.sbsl"
+      : "Скрипт.sbsl";
+    const source = await post("file/read", { path: webEntry });
     const response = await request("run", {
-      path: "Скрипт.sbsl",
+      path: webEntry,
       text: source.text.replace("8080", String(httpPort)),
       stream: true,
     });
@@ -210,10 +254,16 @@ try {
       const loaded = await post("requests/load");
       const collection = loaded.collection;
       collection.baseUrl = `http://127.0.0.1:${httpPort}`;
+      collection.note = "Интеграционный тест API";
       const create = collection.requests.find(
         (request) => request.method === "POST",
       );
       create.query[0].value = "Ivan";
+      if (source.text.includes("ПрочитатьОбъект")) {
+        create.query = [];
+        create.bodyType = "json";
+        create.body = JSON.stringify({ name: "Ivan", age: 25 });
+      }
       await post("requests/save", { collection });
       const created = await post("requests/send", {
         baseUrl: collection.baseUrl,
@@ -232,6 +282,10 @@ try {
       assert.equal(
         (await post("requests/load")).collection.baseUrl,
         collection.baseUrl,
+      );
+      assert.equal(
+        (await post("requests/load")).collection.note,
+        collection.note,
       );
       console.log(
         "PASS: HTTP client saves collections and creates/reads users through real Element server",

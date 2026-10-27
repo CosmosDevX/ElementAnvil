@@ -21,6 +21,19 @@ const request = (patch = {}) =>
     path: "/",
     ...patch,
   });
+test("collection notes persist and old collections default to an empty note", () => {
+  const original = emptyCollection();
+  assert.equal(
+    validateCollection({ ...original, note: "Локальный API · тестовые данные" })
+      .note,
+    "Локальный API · тестовые данные",
+  );
+  delete original.note;
+  assert.equal(validateCollection(original).note, "");
+  assert.throws(() =>
+    validateCollection({ ...original, note: "x".repeat(16001) }),
+  );
+});
 async function fixture(t, handler) {
   const server = http.createServer(handler);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

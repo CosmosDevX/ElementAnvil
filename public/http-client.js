@@ -31,6 +31,7 @@ export class HttpClient {
       </aside>
       <main class="ut-http-main">
         <div class="ut-http-base"><label for="http-base-url">Базовый URL</label><input id="http-base-url" placeholder="Базовый URL" spellcheck="false" /></div>
+        <div class="ut-http-base"><label for="http-note">Заметка</label><textarea id="http-note" aria-label="Заметка к коллекции" placeholder="Заметка к окружению или API" maxlength="16000" rows="2"></textarea></div>
         <div id="http-empty" class="ut-http-empty">Создай папку для эндпоинта и добавь запрос.</div>
         <section id="http-request-editor" class="ut-hidden" aria-label="Редактор HTTP-запроса">
           <div class="ut-http-request-name"><input id="http-request-name" aria-label="Название запроса" maxlength="120" /><select id="http-request-folder" aria-label="Папка запроса"></select></div>
@@ -68,6 +69,10 @@ export class HttpClient {
     };
     $("http-base-url").oninput = () => {
       this.collection.baseUrl = $("http-base-url").value;
+      this.changed();
+    };
+    $("http-note").oninput = () => {
+      this.collection.note = $("http-note").value;
       this.changed();
     };
     for (const [elementId, key] of [
@@ -285,6 +290,7 @@ export class HttpClient {
       ? `${this.project()?.name} · unexplored.http.json`
       : "Личная коллекция";
     $("http-base-url").value = this.collection.baseUrl;
+    $("http-note").value = this.collection.note || "";
     $("http-request-editor").classList.toggle("ut-hidden", !request);
     $("http-empty").classList.toggle("ut-hidden", !!request);
     $("http-rename").disabled = $("http-delete").disabled =
