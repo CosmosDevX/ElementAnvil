@@ -51,6 +51,38 @@ try {
     items.every((item) => item.severity !== 1),
   );
   console.log("PASS: incremental syntax errors appear and clear");
+  const helperLine = good
+    .split("\n")
+    .findIndex((line) => line.startsWith("метод Помощник"));
+  const referencesUri = await server.synchronize("Скрипт.sbsl", good);
+  const references = await server.request("textDocument/references", {
+    textDocument: { uri: referencesUri },
+    position: { line: helperLine, character: 8 },
+    context: { includeDeclaration: false },
+  });
+  assert.ok(
+    references.some((item) => item.range.start.line === 10),
+    JSON.stringify(references),
+  );
+  console.log("PASS: native reference search returns method call sites");
+  const moduleUri = await server.synchronize(
+    "Модули/Приветствие.sbsl",
+    '@Глобально\nметод Создать(): Строка\n    возврат "мир"\n;\n',
+  );
+  const crossReferences = await server.request("textDocument/references", {
+    textDocument: { uri: moduleUri },
+    position: { line: 1, character: 8 },
+    context: { includeDeclaration: false },
+  });
+  assert.ok(
+    crossReferences.some(
+      (item) =>
+        decodeURIComponent(item.uri).endsWith("Скрипт.sbsl") &&
+        item.range.start.line === 12,
+    ),
+    JSON.stringify(crossReferences),
+  );
+  console.log("PASS: native reference search finds callers in another module");
   const uri = await server.synchronize("Скрипт.sbsl", good);
   const lines = good.split("\n");
   for (const [symbol, occurrence, expectedFile, expectedLine] of [

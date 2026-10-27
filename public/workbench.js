@@ -15,6 +15,9 @@ import { markdownTarget } from "./markdown-path.js";
 import { Keybindings, defaultKeys, keyLabel } from "./keybindings.js";
 import { ProjectSearch } from "./project-search.js";
 import { selectionMatches } from "./selection-matches.js";
+import { createExplorer } from "./project-explorer.js";
+import { ExplorerDrag } from "./explorer-drag.js";
+import { ProjectSync } from "./project-sync.js";
 
 const $ = (id) => document.getElementById(id);
 const models = new Map(),
@@ -26,6 +29,7 @@ const models = new Map(),
   problems = new Map();
 const diagnosticErrors = new Map();
 const pendingWrites = new Set();
+const externalConflicts = new Set();
 let silentModelChange = false;
 let session,
   editor,
@@ -37,6 +41,11 @@ let session,
   fileActions,
   terminalPanel,
   projectSearch,
+  referencesSearch,
+  referenceTarget,
+  explorer,
+  explorerDrag,
+  projectSync,
   nameAction,
   fileMutation = false,
   currentName = null,
@@ -158,6 +167,18 @@ function modelPath(model) {
   for (const [name, value] of models) if (value === model) return name;
   throw new Error("Документ закрыт");
 }
+async function showReferences() {
+  const model = editor.getModel();
+  if (!model || model.getLanguageId() !== "sbsl") return;
+  const position =
+    editor.getSelection()?.getStartPosition() || editor.getPosition();
+  referenceTarget = {
+    model,
+    position,
+    name: model.getWordAtPosition(position)?.word || "Метод",
+  };
+  await referencesSearch.show();
+}
 async function assist(model, operation, p, extra = {}, token) {
   const controller = new AbortController();
   const listener = token?.onCancellationRequested(() => controller.abort());
@@ -231,6 +252,7 @@ async function save(name = currentName) {
   }
   if (models.get(name) === model && model.getValue() === text)
     dirty.delete(name);
+  externalConflicts.delete(name);
   updateStatus();
   renderTabs();
 }
@@ -315,68 +337,7 @@ async function applyNameAction() {
         : {}),
     });
     if (operation === "rename") {
-      const remap = (path) =>
-        typeof path === "string" &&
-        (path === result.oldPath || path.startsWith(result.oldPath + "/"))
-          ? result.path + path.slice(result.oldPath.length)
-          : path;
-      const previous = currentName;
-      if (previous && models.has(previous))
-        views.set(previous, editor.saveViewState());
-      const snapshots = affected.map((name) => ({
-        name,
-        next: remap(name),
-        text: models.get(name).getValue(),
-        dirty: dirty.has(name),
-        view: views.get(name),
-      }));
-      if (affected.includes(previous)) editor.setModel(null);
-      for (const snapshot of snapshots) {
-        const model = models.get(snapshot.name);
-        devtools.todoMarks.delete(model);
-        models.delete(snapshot.name);
-        views.delete(snapshot.name);
-        dirty.delete(snapshot.name);
-        problems.delete(snapshot.name);
-        model.dispose();
-      }
-      session.project = result.project;
-      for (const snapshot of snapshots) {
-        createModel(snapshot.next, snapshot.text);
-        if (snapshot.dirty) {
-          dirty.add(snapshot.next);
-          scheduleSave(snapshot.next);
-        }
-        if (snapshot.view) views.set(snapshot.next, snapshot.view);
-      }
-      selectedDirectory = remap(selectedDirectory);
-      const expandedNext = [...expanded].map(remap);
-      expanded.clear();
-      for (const path of expandedNext) expanded.add(path);
-      tree.clear();
-      devtools.debug.renamePaths(result.oldPath, result.path);
-      diagnosticErrors.clear();
-      problems.clear();
-      if (result.configChanged) {
-        const model = models.get(result.configChanged.path);
-        if (model && !dirty.has(result.configChanged.path)) {
-          silentModelChange = true;
-          try {
-            model.setValue(result.configChanged.text);
-          } finally {
-            silentModelChange = false;
-          }
-        }
-      }
-      await refreshTree();
-      if (previous && affected.includes(previous)) {
-        currentName = null;
-        await openFile(remap(previous));
-      }
-      renderTabs();
-      renderTree();
-      updateStatus();
-      if (result.warning) notice(result.warning);
+      await applyRelocation(result);
     } else {
       await refreshTree();
       await openFile(result.path);
@@ -391,10 +352,80 @@ async function applyNameAction() {
     });
   }
 }
+async function applyRelocation(result) {
+  const affected = [...models.keys()].filter(
+    (path) => path === result.oldPath || path.startsWith(result.oldPath + "/"),
+  );
+  const remap = (path) =>
+    typeof path === "string" &&
+    (path === result.oldPath || path.startsWith(result.oldPath + "/"))
+      ? result.path + path.slice(result.oldPath.length)
+      : path;
+  const previous = currentName;
+  if (previous && models.has(previous))
+    views.set(previous, editor.saveViewState());
+  const snapshots = affected.map((name) => ({
+    name,
+    next: remap(name),
+    text: models.get(name).getValue(),
+    dirty: dirty.has(name),
+    view: views.get(name),
+  }));
+  if (affected.includes(previous)) editor.setModel(null);
+  for (const snapshot of snapshots) {
+    const model = models.get(snapshot.name);
+    devtools.todoMarks.delete(model);
+    models.delete(snapshot.name);
+    views.delete(snapshot.name);
+    dirty.delete(snapshot.name);
+    if (externalConflicts.delete(snapshot.name))
+      externalConflicts.add(snapshot.next);
+    problems.delete(snapshot.name);
+    model.dispose();
+  }
+  session.project = result.project;
+  for (const snapshot of snapshots) {
+    createModel(snapshot.next, snapshot.text);
+    if (snapshot.dirty) {
+      dirty.add(snapshot.next);
+      scheduleSave(snapshot.next);
+    }
+    if (snapshot.view) views.set(snapshot.next, snapshot.view);
+  }
+  selectedDirectory = remap(selectedDirectory);
+  const expandedNext = [...expanded].map(remap);
+  expanded.clear();
+  for (const path of expandedNext) expanded.add(path);
+  tree.clear();
+  devtools.debug.renamePaths(result.oldPath, result.path);
+  diagnosticErrors.clear();
+  problems.clear();
+  if (result.configChanged) {
+    const model = models.get(result.configChanged.path);
+    if (model && !dirty.has(result.configChanged.path)) {
+      silentModelChange = true;
+      try {
+        model.setValue(result.configChanged.text);
+      } finally {
+        silentModelChange = false;
+      }
+    }
+  }
+  await refreshTree();
+  if (previous && affected.includes(previous)) {
+    currentName = null;
+    await openFile(remap(previous));
+  }
+  renderTabs();
+  renderTree();
+  updateStatus();
+  if (result.warning) notice(result.warning);
+}
 function scheduleSave(name) {
   clearTimeout(saves.get(name));
   saves.delete(name);
-  if (session.settings.autoSave === false) return;
+  if (session.settings.autoSave === false || externalConflicts.has(name))
+    return;
   saves.set(
     name,
     setTimeout(() => {
@@ -402,8 +433,111 @@ function scheduleSave(name) {
     }, 650),
   );
 }
+async function moveEntry(path, directory) {
+  if (
+    fileMutation ||
+    projectBusy ||
+    running ||
+    devtools.debug.active ||
+    devtools.gitBusy
+  )
+    return;
+  fileMutation = true;
+  editor.updateOptions({ readOnly: true });
+  try {
+    for (const name of models.keys())
+      if (name === path || name.startsWith(path + "/")) {
+        clearTimeout(saves.get(name));
+        saves.delete(name);
+      }
+    await Promise.all([...pendingWrites]);
+    const result = await api("file/move", projectData({ path, directory }));
+    await applyRelocation(result);
+    if (directory) expanded.add(directory);
+    await refreshTree();
+  } finally {
+    fileMutation = false;
+    editor.updateOptions({
+      readOnly: devtools.debug.active || devtools.gitBusy,
+    });
+    for (const name of dirty) scheduleSave(name);
+  }
+}
+async function synchronizeProject(result) {
+  fileMutation = true;
+  editor.updateOptions({ readOnly: true });
+  updateStatus();
+  try {
+    // Keep local edits on disk conflicts. An explicit Save is required to overwrite.
+    session.project = result.project;
+    for (const event of result.events) {
+      for (const move of event.moves) {
+        const movedDocuments = [...models.keys()]
+          .filter(
+            (name) =>
+              name === move.oldPath || name.startsWith(move.oldPath + "/"),
+          )
+          .map((name) => move.path + name.slice(move.oldPath.length));
+        for (const name of dirty)
+          if (name === move.oldPath || name.startsWith(move.oldPath + "/")) {
+            externalConflicts.add(name);
+            clearTimeout(saves.get(name));
+            saves.delete(name);
+          }
+        await applyRelocation({ ...move, project: result.project });
+        event.changed.push(...movedDocuments);
+      }
+      for (const name of [...event.changed, ...event.deleted]) {
+        if (!models.has(name)) continue;
+        if (dirty.has(name) || event.deleted.includes(name)) {
+          externalConflicts.add(name);
+          clearTimeout(saves.get(name));
+          saves.delete(name);
+          notice(
+            `«${name}» изменён или удалён вне редактора. Буфер сохранён; автосохранение приостановлено до Ctrl+S.`,
+          );
+        } else {
+          try {
+            const file = await api("file/read", projectData({ path: name }));
+            const view = name === currentName ? editor.saveViewState() : null;
+            silentModelChange = true;
+            try {
+              models.get(name)?.setValue(file.text);
+            } finally {
+              silentModelChange = false;
+            }
+            if (view) editor.restoreViewState(view);
+            problems.delete(name);
+            scheduleDiagnostics();
+          } catch {
+            /* A subsequent filesystem event will reconcile a disappearing file. */
+          }
+        }
+      }
+    }
+    if (result.reset)
+      notice("Список файлов обновлён после большого числа изменений.");
+    if (
+      result.reset ||
+      result.events.some(
+        (event) =>
+          event.moves.length || event.deleted.length || event.added.length,
+      )
+    )
+      await refreshTree();
+    renderTabs();
+    updateStatus();
+  } finally {
+    fileMutation = false;
+    editor.updateOptions({
+      readOnly: devtools.debug.active || devtools.gitBusy,
+    });
+    updateStatus();
+  }
+}
+
 async function projectAction(endpoint, data = {}) {
-  if (projectBusy) return;
+  if (projectBusy || fileMutation) return;
   projectBusy = true;
   try {
     await httpClient?.flush();
@@ -424,6 +558,8 @@ async function projectAction(endpoint, data = {}) {
     if (result.cancelled) return;
     const changed = result.project.id !== session.project?.id;
     if (changed) {
+      projectSync?.reset();
+      externalConflicts.clear();
       terminalPanel?.reset();
       fileActions?.hide();
       devtools?.reset();
@@ -469,94 +605,8 @@ async function projectAction(endpoint, data = {}) {
     createButton.textContent = "Создать проект";
   }
 }
-async function refreshTree() {
-  if (!session.project) return;
-  tree.set("", (await api("tree", projectData({ path: "" }))).entries);
-  for (const directory of expanded) {
-    try {
-      tree.set(
-        directory,
-        (await api("tree", projectData({ path: directory }))).entries,
-      );
-    } catch {
-      expanded.delete(directory);
-      tree.delete(directory);
-    }
-  }
-  renderTree();
-}
-function renderTree() {
-  const list = $("file-list");
-  list.replaceChildren();
-  function render(directory, depth) {
-    const entries = tree.get(directory) || [];
-    for (const item of entries) {
-      const button = document.createElement("button");
-      button.className = `ut-tree-item${item.path === currentName ? " ut-active" : ""}${item.kind === "directory" && item.path === selectedDirectory ? " ut-directory-selected" : ""}`;
-      button.style.paddingLeft = `${10 + depth * 15}px`;
-      button.setAttribute("role", "treeitem");
-      button.title = item.path;
-      const chevron = document.createElement("span");
-      chevron.className = "ut-tree-chevron";
-      chevron.textContent =
-        item.kind === "directory" ? (expanded.has(item.path) ? "▾" : "▸") : "";
-      const icon = document.createElement("span");
-      icon.className = "ut-tree-file-mark";
-      icon.textContent =
-        item.kind === "directory"
-          ? "▱"
-          : languageOf(item.path) === "sbsl"
-            ? "Э"
-            : "·";
-      const label = document.createElement("span");
-      label.className = "ut-tree-label";
-      label.textContent = item.name;
-      button.append(chevron, icon, label);
-      const row = document.createElement("div");
-      row.className = "ut-tree-row";
-      const more = document.createElement("button");
-      more.className = "ut-tree-more";
-      more.textContent = "⋯";
-      more.title = "Действия: " + item.name;
-      more.setAttribute("aria-label", "Действия: " + item.name);
-      more.onclick = (event) => {
-        event.stopPropagation();
-        fileActions.show(item, more, true);
-      };
-      row.append(button, more);
-      fileActions.attach(row, item, more);
-      list.append(row);
-      if (item.kind === "directory") {
-        button.setAttribute("aria-expanded", String(expanded.has(item.path)));
-        button.onclick = async () => {
-          selectedDirectory = item.path;
-          $("selected-folder").textContent = "/" + selectedDirectory;
-          try {
-            if (expanded.has(item.path)) expanded.delete(item.path);
-            else {
-              expanded.add(item.path);
-              tree.set(
-                item.path,
-                (await api("tree", projectData({ path: item.path }))).entries,
-              );
-            }
-            renderTree();
-          } catch (error) {
-            report(error);
-          }
-        };
-        if (expanded.has(item.path)) render(item.path, depth + 1);
-      } else button.onclick = () => openFile(item.path).catch(report);
-    }
-  }
-  render("", 0);
-  if (!list.childElementCount) {
-    const empty = document.createElement("div");
-    empty.className = "ut-tree-empty";
-    empty.textContent = "Папка пуста";
-    list.append(empty);
-  }
-}
+const refreshTree = () => explorer.refresh();
+const renderTree = () => explorer.render();
 function createModel(name, text) {
   const uri = monaco.Uri.parse(
     session.project.uri + name.split("/").map(encodeURIComponent).join("/"),
@@ -725,12 +775,17 @@ function updateStatus() {
   $("save").disabled = !model;
   $("run").disabled =
     running ||
+    fileMutation ||
     devtools?.gitBusy ||
     devtools?.debug.active ||
     !session.project ||
     (!session.project.entry && lang !== "sbsl");
   $("debug-start").disabled =
-    !session.elementDebug || !session.project || running || devtools?.gitBusy;
+    !session.elementDebug ||
+    !session.project ||
+    running ||
+    fileMutation ||
+    devtools?.gitBusy;
   const target = session.project?.entry || currentName;
   $("run").title = running
     ? `Выполняется: ${runningName || target}`
@@ -864,7 +919,7 @@ async function refreshDiagnostics() {
   }
 }
 async function run(selectedFile) {
-  if (running || !session.project) return;
+  if (running || fileMutation || !session.project) return;
   running = true;
   updateStatus();
   try {
@@ -986,6 +1041,8 @@ function settings(patch) {
     });
 }
 function bind() {
+  $("git-diff-button").onclick = () =>
+    currentName && devtools.diff.show(currentName);
   $("project-symbols").onclick = () =>
     session.project ? projectSearch.show() : notice("Сначала открой проект.");
   $("http-client-button").onclick = async () => {
@@ -1134,6 +1191,7 @@ function bind() {
     find: () => editorCommand("editor.action.startFindReplaceAction"),
     replace: () => editorCommand("editor.action.startFindReplaceAction"),
     definition: () => editorCommand("editor.action.revealDefinition"),
+    references: showReferences,
     format: () => editor.getAction("editor.action.formatDocument")?.run(),
     comment: () => editorCommand("editor.action.commentLine"),
     suggest: () => editorCommand("editor.action.triggerSuggest"),
@@ -1216,6 +1274,46 @@ async function initialize() {
       editor.focus();
     },
     report,
+  });
+  referencesSearch = new ProjectSearch({
+    prefix: "references",
+    report,
+    load: async () => {
+      const target = referenceTarget;
+      const { result } = await assist(
+        target.model,
+        "references",
+        target.position,
+      );
+      const items = [];
+      for (const location of (result || []).slice(0, 5000)) {
+        try {
+          const path = projectFile(
+            session.project.uri,
+            location.uri,
+            session.platform === "win32",
+          );
+          if (path)
+            items.push({
+              path,
+              name: target.name,
+              kind: "reference",
+              scope: "",
+              lineNumber: location.range.start.line + 1,
+              column: location.range.start.character + 1,
+            });
+        } catch {
+          /* A native library URI may lie outside the opened project. */
+        }
+      }
+      return { items, truncated: result?.length > 5000 };
+    },
+    open: async (item) => {
+      await openFile(item.path);
+      editor.setPosition({ lineNumber: item.lineNumber, column: item.column });
+      editor.revealLineInCenter(item.lineNumber);
+      editor.focus();
+    },
   });
   for (const [id, palette] of Object.entries(themes)) {
     const button = document.createElement("button");
@@ -1353,6 +1451,7 @@ async function initialize() {
   });
   fileActions = new FileActions({
     report,
+    diff: (path) => devtools.diff.show(path),
     run,
     debug: (path) => devtools.debug.start(path),
     nameAction: openNameAction,
@@ -1375,6 +1474,50 @@ async function initialize() {
       session.project.root +
       (session.platform === "win32" ? "\\" : "/") +
       path.replaceAll("/", session.platform === "win32" ? "\\" : "/"),
+  });
+  explorerDrag = new ExplorerDrag({
+    project: () => session.project,
+    busy: () =>
+      fileMutation ||
+      projectBusy ||
+      running ||
+      devtools.debug.active ||
+      devtools.gitBusy,
+    move: moveEntry,
+    report,
+    hideMenu: () => fileActions.hide(),
+  });
+  explorer = createExplorer({
+    tree,
+    expanded,
+    api,
+    projectData,
+    fileActions,
+    languageOf,
+    openFile,
+    report,
+    drag: explorerDrag,
+    project: () => session.project,
+    currentName: () => currentName,
+    selectedDirectory: () => selectedDirectory,
+    selectDirectory: (path) => {
+      selectedDirectory = path;
+    },
+  });
+  projectSync = new ProjectSync({
+    api,
+    project: () => session.project,
+    changed: synchronizeProject,
+    busy: () =>
+      projectBusy ||
+      fileMutation ||
+      running ||
+      devtools.debug.active ||
+      devtools.gitBusy ||
+      pendingWrites.size > 0 ||
+      explorerDrag.dragging ||
+      !!document.querySelector("dialog[open]"),
+    error: (error) => console.debug(error.message),
   });
   $("app-version").textContent = session.version;
   httpClient = new HttpClient({

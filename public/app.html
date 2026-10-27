@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/terminal-vendor/xterm.css" />
     <link rel="stylesheet" href="/file-actions.css" />
     <link rel="stylesheet" href="/search-tools.css" />
+    <link rel="stylesheet" href="/scrollbars.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -278,6 +279,12 @@
             >
               <svg><use href="#i-format" /></svg></button
             ><button
+              id="git-diff-button"
+              class="ut-secondary"
+              title="Git diff текущего файла"
+            >
+              ± Diff</button
+            ><button
               id="debug-start"
               class="ut-secondary"
               title="Начать / продолжить отладку · Ctrl+F5"
@@ -473,7 +480,7 @@
       </details>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        Element Anvil <span id="app-version">0.4.1</span>
+        Element Anvil <span id="app-version">0.5.0</span>
       </p>
     </dialog>
     <dialog id="symbol-dialog" class="ut-dialog ut-symbol-dialog">
@@ -607,6 +614,33 @@
     <div id="toast" class="ut-toast ut-hidden" role="status"></div>
     <script src="/vendor/vs/loader.js"></script>
     <script type="module" src="/workbench.js"></script>
+    <dialog id="references-dialog" class="ut-dialog ut-symbol-dialog">
+      <div class="ut-dialog-heading">
+        <h2>Места вызова метода</h2>
+        <button
+          class="ut-icon-button"
+          data-close="references-dialog"
+          aria-label="Закрыть места вызова"
+        >
+          ×
+        </button>
+      </div>
+      <input
+        id="references-query"
+        aria-label="Фильтр мест вызова"
+        role="combobox"
+        aria-controls="references-results"
+        aria-expanded="true"
+        autocomplete="off"
+        placeholder="Файл или имя метода"
+      />
+      <div
+        id="references-results"
+        role="listbox"
+        aria-label="Места вызова метода"
+      ></div>
+      <p id="references-status" class="ut-console-subtle" role="status"></p>
+    </dialog>
     <dialog id="git-diff-dialog" class="ut-dialog ut-git-diff-dialog">
       <div class="ut-dialog-heading">
         <h2 id="git-diff-title">Изменения</h2>
@@ -618,7 +652,10 @@
           ×
         </button>
       </div>
-      <pre id="git-diff-text" tabindex="0"></pre>
+      <div
+        id="git-diff-editor"
+        aria-label="Git diff: исходный и изменённый файл"
+      ></div>
     </dialog>
   </body>
 </html>

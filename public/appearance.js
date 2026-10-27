@@ -78,6 +78,8 @@ export function applyAppearance(monaco, editor, settings) {
       "editorHoverWidget.foreground": p.fg,
       "editorGutter.background": p.bg,
       "scrollbarSlider.background": p.border + "88",
+      "scrollbarSlider.hoverBackground": p.muted + "88",
+      "scrollbarSlider.activeBackground": p.accent + "99",
       "editorOverviewRuler.border": "#00000000",
       "editorBracketMatch.background": p.line,
       "editorBracketMatch.border": p.border,

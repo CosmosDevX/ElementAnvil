@@ -1,0 +1,35 @@
+/* Native panels, dialogs and textareas follow the selected theme. Monaco and
+   xterm use their own scrollbar renderers, configured with the same palette. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--panel);
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: var(--panel);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border: 2px solid var(--panel);
+  border-radius: 7px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+.ut-drop-target {
+  background: var(--accent-bg) !important;
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.ut-git-diff-dialog {
+  overflow: hidden;
+}
+#git-diff-editor {
+  height: calc(100% - 60px);
+  min-height: 140px;
+  border: 1px solid var(--border);
+}

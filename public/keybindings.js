@@ -10,6 +10,7 @@ export const commands = [
   ["find", "Поиск и замена в файле", "Ctrl+KeyF", true],
   ["replace", "Замена в файле", "Ctrl+KeyH", true],
   ["definition", "Перейти к определению", "Ctrl+F12", true],
+  ["references", "Найти места вызова", "Shift+F12", true],
   ["run", "Запустить проект", "F5"],
   ["debug", "Отладка / продолжить", "Ctrl+F5"],
   ["stop", "Остановить", "Shift+F5"],

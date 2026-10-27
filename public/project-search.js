@@ -2,12 +2,13 @@ export class ProjectSearch {
   revision = 0;
   items = [];
   selected = 0;
-  constructor({ load, open, report }) {
+  constructor({ load, open, report, prefix = "symbol" }) {
     Object.assign(this, { load, open, report });
-    this.dialog = document.getElementById("symbol-dialog");
-    this.input = document.getElementById("symbol-query");
-    this.list = document.getElementById("symbol-results");
-    this.status = document.getElementById("symbol-status");
+    this.prefix = prefix;
+    this.dialog = document.getElementById(prefix + "-dialog");
+    this.input = document.getElementById(prefix + "-query");
+    this.list = document.getElementById(prefix + "-results");
+    this.status = document.getElementById(prefix + "-status");
     this.input.oninput = () => {
       this.selected = 0;
       this.render();
@@ -81,9 +82,9 @@ export class ProjectSearch {
       button.className = "ut-symbol-result";
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(index === this.selected));
-      button.id = `symbol-result-${index}`;
+      button.id = `${this.prefix}-result-${index}`;
       const title = document.createElement("strong");
-      title.textContent = `${item.kind === "method" ? "ƒ" : "◇"}  ${item.scope ? item.scope + "." : ""}${item.name}`;
+      title.textContent = `${item.kind === "reference" ? "↳" : item.kind === "method" ? "ƒ" : "◇"}  ${item.scope ? item.scope + "." : ""}${item.name}`;
       const path = document.createElement("small");
       path.textContent = `${item.path}:${item.lineNumber}`;
       button.append(title, path);
@@ -92,7 +93,7 @@ export class ProjectSearch {
     }
     this.input.setAttribute(
       "aria-activedescendant",
-      this.filtered.length ? `symbol-result-${this.selected}` : "",
+      this.filtered.length ? `${this.prefix}-result-${this.selected}` : "",
     );
     this.list
       .querySelector('[aria-selected="true"]')

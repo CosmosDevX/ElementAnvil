@@ -66,6 +66,12 @@ try {
   );
   await waitFor("AFTER_INTERRUPT");
   console.log("PASS: resize and Ctrl+C interrupt");
+  assert.equal(manager.size({ cols: 70, rows: 2 }).rows, 2);
+  manager.resize(project.id, session.id, { cols: 70, rows: 2 });
+  output = "";
+  manager.write(project.id, session.id, "Write-Out\t ('TAB_'+'SMALL_OK')\r");
+  await waitFor("TAB_SMALL_OK");
+  console.log("PASS: Tab completion remains executable with a two-row ConPTY");
   assert.throws(() => manager.write("stale-project", session.id, "bad"));
   manager.close(project.id, session.id);
   assert.equal(manager.sessions.size, 0);

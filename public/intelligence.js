@@ -242,5 +242,25 @@ export function setupProviders(monaco, { assist, serviceAvailable, event }) {
         }
       },
     });
+    monaco.languages.registerReferenceProvider(language, {
+      async provideReferences(model, position, context, token) {
+        try {
+          const { result } = await assist(
+            model,
+            "references",
+            position,
+            {},
+            token,
+          );
+          return (result || []).map((item) => ({
+            uri: monaco.Uri.parse(item.uri),
+            range: range(item.range),
+          }));
+        } catch (error) {
+          event(error.message);
+          return [];
+        }
+      },
+    });
   }
 }

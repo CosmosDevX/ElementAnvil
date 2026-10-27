@@ -35,7 +35,7 @@ export class TerminalPanel {
     this.observer = new ResizeObserver(() => {
       if (!this.root.classList.contains("ut-hidden")) this.fit();
     });
-    this.observer.observe(this.root);
+    this.observer.observe(this.host);
     setInterval(() => {
       for (const session of this.sessions.values())
         if (session.alive) this.poll(session);
@@ -45,7 +45,11 @@ export class TerminalPanel {
     return this.sessions.get(this.active);
   }
   reset() {
-    for (const session of this.sessions.values()) session.terminal.dispose();
+    clearTimeout(this.fitTimer);
+    for (const session of this.sessions.values()) {
+      clearTimeout(session.flushTimer);
+      session.terminal.dispose();
+    }
     this.sessions.clear();
     this.active = null;
     this.count = 0;
@@ -167,6 +171,7 @@ export class TerminalPanel {
     session.flushTimer = null;
     const data = session.input;
     session.input = "";
+    if (session.id === this.active) this.fitNow();
     for (let at = 0; at < data.length; at += 8000) {
       const chunk = data.slice(at, at + 8000);
       session.queue = session.queue
@@ -215,15 +220,26 @@ export class TerminalPanel {
     session.alive = result.alive;
   }
   fit() {
+    clearTimeout(this.fitTimer);
+    this.fitTimer = setTimeout(() => this.fitNow(), 60);
+  }
+  fitNow() {
     const session = this.current();
     if (!session || this.root.classList.contains("ut-hidden")) return;
     try {
-      session.fit.fit();
-      const { cols, rows } = session.terminal;
+      const proposed = session.fit.proposeDimensions();
+      if (!proposed || this.host.clientHeight < 1 || this.host.clientWidth < 1)
+        return;
+      const cols = Math.max(2, Math.min(500, proposed.cols)),
+        rows = Math.max(1, Math.min(200, proposed.rows));
       const key = cols + ":" + rows;
       if (key === session.size) return;
       session.size = key;
-      this.call(session, "resize", { cols, rows }).catch(() => {});
+      session.terminal.resize(cols, rows);
+      // Keep geometry changes and keystrokes ordered for ConPTY/PSReadLine.
+      session.queue = session.queue
+        .then(() => this.call(session, "resize", { cols, rows }))
+        .catch(this.ctx.report);
     } catch {}
   }
   appearance() {
@@ -256,6 +272,9 @@ export class TerminalPanel {
         foreground: palette.fg,
         cursor: palette.accent,
         selectionBackground: palette.selection,
+        scrollbarSliderBackground: palette.border,
+        scrollbarSliderHoverBackground: palette.muted,
+        scrollbarSliderActiveBackground: palette.accent,
       };
       session.terminal.options.fontFamily = `'${font.family}', monospace`;
       session.terminal.options.fontSize = Math.max(
@@ -264,6 +283,7 @@ export class TerminalPanel {
       );
     }
     this.fit();
+    document.fonts.ready.then(() => this.fit());
   }
   async close() {
     const session = this.current();

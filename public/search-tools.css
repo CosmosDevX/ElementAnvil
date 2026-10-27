@@ -33,10 +33,12 @@
 .ut-symbol-dialog {
   width: min(720px, 90vw);
 }
-#symbol-query {
+#symbol-query,
+#references-query {
   width: 100%;
 }
-#symbol-results {
+#symbol-results,
+#references-results {
   height: min(420px, 55vh);
   overflow: auto;
   margin-top: 12px;

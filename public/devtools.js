@@ -1,6 +1,7 @@
 import { scanTodos } from "./todos.js";
 import { DebugView } from "./debug-view.js";
 import { element, button } from "./ui-elements.js";
+import { GitDiff } from "./git-diff.js";
 const $ = (id) => document.getElementById(id);
 
 export class DevTools {
@@ -10,6 +11,7 @@ export class DevTools {
   constructor(context) {
     this.ctx = context;
     this.debug = new DebugView(context);
+    this.diff = new GitDiff(context);
     for (const node of document.querySelectorAll("[data-side-view]"))
       node.onclick = () => this.show(node.dataset.sideView);
     this.todo = $("todos-view");
@@ -346,20 +348,6 @@ export class DevTools {
     }
   }
   async openDiff(item, staged) {
-    try {
-      await this.ctx.saveAll();
-      const result = await this.ctx.api("git/diff", {
-        projectId: this.ctx.project().id,
-        path: item.path,
-        staged,
-      });
-      const dialog = $("git-diff-dialog");
-      $("git-diff-title").textContent =
-        `${staged ? "Индекс" : "Рабочая папка"} · ${item.path}`;
-      $("git-diff-text").textContent = result.patch ?? result.after;
-      dialog.showModal();
-    } catch (error) {
-      this.ctx.report(error);
-    }
+    return this.diff.show(item.path, staged);
   }
 }

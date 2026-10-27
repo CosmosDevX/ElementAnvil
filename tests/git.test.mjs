@@ -57,6 +57,16 @@ test("Git workflow stages, unstages, commits, diffs, branches and fast-forward s
   await git.mutate(project.id, "stage", { path: "Скрипт.sbsl" });
   await git.mutate(project.id, "commit", { message: "Начальный коммит" });
   assert.equal((await git.status(project.id)).files.length, 0);
+  const clean = await git.diff(project.id, "Скрипт.sbsl");
+  assert.equal(clean.before, clean.after);
+  const overlay = await git.diff(
+    project.id,
+    "Скрипт.sbsl",
+    false,
+    "// unsaved overlay\n",
+  );
+  assert.equal(overlay.after, "// unsaved overlay\n");
+  assert.notEqual((await projects.read("Скрипт.sbsl")).text, overlay.after);
   await projects.save("Скрипт.sbsl", "// TODO: изменение\n");
   assert.match(
     (await git.diff(project.id, "Скрипт.sbsl")).patch,
@@ -67,6 +77,9 @@ test("Git workflow stages, unstages, commits, diffs, branches and fast-forward s
     (await git.diff(project.id, "Скрипт.sbsl", true)).patch,
     /TODO: изменение/,
   );
+  const staged = await git.diff(project.id, "Скрипт.sbsl", true);
+  assert.equal(staged.after, "// TODO: изменение\n");
+  assert.notEqual(staged.before, staged.after);
   await git.mutate(project.id, "unstage", { path: "Скрипт.sbsl" });
   assert.equal(
     (await projects.read("Скрипт.sbsl")).text,

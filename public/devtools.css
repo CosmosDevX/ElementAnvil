@@ -188,15 +188,6 @@
   max-width: 95vw;
   height: 80vh;
 }
-#git-diff-text {
-  font: 12px/1.7 var(--mono);
-  white-space: pre;
-  overflow: auto;
-  max-height: calc(80vh - 100px);
-  padding: 10px;
-  background: var(--editor);
-  border: 1px solid var(--border);
-}
 .ut-debug-toolbar {
   display: flex;
   gap: 5px;

@@ -74,6 +74,8 @@ export class FileActions {
     }
     add("Переименовать…", () => this.ctx.nameAction("rename", item), busy);
     if (item.kind === "file")
+      add("Git diff", () => this.ctx.diff(item.path), busy);
+    if (item.kind === "file")
       add("Дублировать…", () => this.ctx.nameAction("duplicate", item), busy);
     else {
       add("Новый файл…", () => this.ctx.createIn("file", item.path), busy);

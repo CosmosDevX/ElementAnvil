@@ -1,6 +1,6 @@
 {
   "name": "unexplored-editor",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
@@ -45,14 +45,30 @@
       "package.json",
       "node_modules/monaco-editor/min/**",
       "node_modules/monaco-editor/LICENSE",
-      "build/icon.ico"
+      "build/icon.ico",
+      "!node_modules/monaco-editor/esm/**",
+      "!node_modules/monaco-editor/dev/**",
+      "!node_modules/monaco-editor/min-maps/**",
+      "!node_modules/@xterm/**",
+      "!node_modules/node-addon-api/**",
+      "!node_modules/node-pty/src/**",
+      "!node_modules/node-pty/deps/**",
+      "!node_modules/node-pty/third_party/**",
+      "!node_modules/node-pty/build/**",
+      "!node_modules/node-pty/prebuilds/darwin-*/**",
+      "!node_modules/node-pty/prebuilds/linux-*/**",
+      "!node_modules/node-pty/prebuilds/win32-arm64/**",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.pdb",
+      "!node_modules/**/*.ts",
+      "!node_modules/**/{test,tests,docs,examples,benchmark}/**"
     ],
     "asar": true,
     "asarUnpack": [
       "node_modules/node-pty/**"
     ],
     "npmRebuild": false,
-    "compression": "store",
+    "compression": "maximum",
     "win": {
       "target": [
         "portable",
@@ -81,7 +97,11 @@
       "artifactName": "ElementAnvil-${version}-Setup.exe",
       "shortcutName": "Element Anvil",
       "createDesktopShortcut": true
-    }
+    },
+    "electronLanguages": [
+      "en-US",
+      "ru"
+    ]
   },
   "devDependencies": {
     "@fontsource/fira-code": "^5.3.0",
