@@ -183,10 +183,34 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ut-git-diff-dialog {
-  width: min(1100px, 95vw);
-  max-width: 95vw;
-  height: 80vh;
+.ut-git-workspace {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 100px;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--editor);
+}
+.ut-git-diff-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.ut-git-diff-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#git-diff-editor {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  color: var(--muted);
 }
 .ut-debug-toolbar {
   display: flex;

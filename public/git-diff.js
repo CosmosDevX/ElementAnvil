@@ -2,9 +2,9 @@ export class GitDiff {
   revision = 0;
   constructor(ctx) {
     this.ctx = ctx;
-    this.dialog = document.getElementById("git-diff-dialog");
+    this.root = document.getElementById("git-workspace");
     this.host = document.getElementById("git-diff-editor");
-    this.dialog.addEventListener("close", () => this.dispose());
+    document.getElementById("git-diff-close").onclick = () => ctx.closeGit();
   }
   dispose() {
     this.revision++;
@@ -14,10 +14,13 @@ export class GitDiff {
     this.after?.dispose();
     this.before = this.after = null;
     this.host.replaceChildren();
+    this.host.textContent = "Выбери изменённый файл во вкладке Git.";
+    document.getElementById("git-diff-title").textContent = "Изменения Git";
   }
   async show(path, staged = false) {
     const project = this.ctx.project();
     if (!project) return;
+    this.ctx.revealGit();
     const revision = ++this.revision;
     try {
       const text = !staged
@@ -34,7 +37,7 @@ export class GitDiff {
       this.dispose();
       document.getElementById("git-diff-title").textContent =
         `${staged ? "HEAD ↔ индекс" : "Индекс ↔ рабочая папка"} · ${path}`;
-      this.dialog.showModal();
+      this.host.replaceChildren();
       if (
         (result.before || "").includes("\0") ||
         (result.after || "").includes("\0")
@@ -52,7 +55,7 @@ export class GitDiff {
         automaticLayout: true,
         readOnly: true,
         originalEditable: false,
-        renderSideBySide: innerWidth > 850,
+        renderSideBySide: this.host.clientWidth > 850,
         useInlineViewWhenSpaceIsLimited: true,
         minimap: { enabled: false },
         scrollBeyondLastLine: false,

@@ -297,6 +297,16 @@ try {
         if (done) break;
       }
       assert.match(received, /"result"/);
+      const portCheck = net.createServer();
+      await new Promise((resolve, reject) => {
+        portCheck.once("error", reject);
+        portCheck.listen(
+          Number(new URL(collection.baseUrl).port || 80),
+          "127.0.0.1",
+          resolve,
+        );
+      });
+      await new Promise((resolve) => portCheck.close(resolve));
       console.log(
         "PASS: upstream web template compiles, streams live output, serves HTTP, and stops",
       );
@@ -322,7 +332,7 @@ try {
     "PASS: all five bundled fonts include Cyrillic and load over local app protocol",
   );
 } finally {
-  backend.shutdown();
+  await backend.shutdown();
   assert.ok(temporary.startsWith(baseDirectory + path.sep));
   await rm(temporary, { recursive: true, force: true });
 }

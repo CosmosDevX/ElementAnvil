@@ -1,3 +1,4 @@
+import { icon } from "./icons.js";
 const $ = (id) => document.getElementById(id);
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const label = (tag, content, className) => {
@@ -335,6 +336,7 @@ export class HttpClient {
         (item) => item.parentId === parentId,
       )) {
         const button = label("button", "▾  " + folder.name, "ut-http-folder");
+        button.prepend(icon("folder"));
         button.style.paddingLeft = `${12 + depth * 14}px`;
         button.setAttribute("role", "treeitem");
         button.setAttribute("aria-label", `Папка ${folder.name}`);
@@ -466,10 +468,13 @@ export class HttpClient {
     $("http-cancel").classList.toggle("ut-hidden", !this.controller);
   }
   setProjectRunning(running) {
-    $("http-run-project").disabled = !this.canRun();
-    $("http-run-project").textContent = running
-      ? "Остановить проект"
-      : "Запустить проект";
+    $("http-run-project").disabled = !running && !this.canRun();
+    $("http-run-project").replaceChildren(
+      icon(running ? "stop" : "run"),
+      document.createTextNode(
+        running ? "Остановить проект" : "Запустить проект",
+      ),
+    );
   }
   async send() {
     const request = this.request();

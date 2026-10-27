@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/file-actions.css" />
     <link rel="stylesheet" href="/search-tools.css" />
     <link rel="stylesheet" href="/scrollbars.css" />
+    <link rel="stylesheet" href="/icons.css" />
     <link
       rel="preload"
       href="/fonts/jetbrains-mono-latin-400-normal.woff2"
@@ -66,7 +67,7 @@
           class="ut-text-button"
           title="Структуры и методы проекта · Ctrl+I"
         >
-          ⌕ Символы
+          ⌕ Искать
         </button>
         <button
           id="http-client-button"
@@ -279,12 +280,6 @@
             >
               <svg><use href="#i-format" /></svg></button
             ><button
-              id="git-diff-button"
-              class="ut-secondary"
-              title="Git diff текущего файла"
-            >
-              ± Diff</button
-            ><button
               id="debug-start"
               class="ut-secondary"
               title="Начать / продолжить отладку · Ctrl+F5"
@@ -340,6 +335,22 @@
             Открой файл в проводнике или создай новый.
           </div>
         </div>
+        <section
+          id="git-workspace"
+          class="ut-git-workspace ut-hidden"
+          aria-label="Изменения Git"
+        >
+          <div class="ut-git-diff-heading">
+            <strong id="git-diff-title">Изменения Git</strong>
+            <button id="git-diff-close" class="ut-secondary">К коду</button>
+          </div>
+          <div
+            id="git-diff-editor"
+            aria-label="Git diff: исходный и изменённый файл"
+          >
+            Выбери изменённый файл во вкладке Git.
+          </div>
+        </section>
         <section id="console" class="ut-console" aria-label="Консоль">
           <div
             id="console-resizer"
@@ -506,7 +517,7 @@
       <div
         id="symbol-results"
         role="listbox"
-        aria-label="Символы проекта"
+        aria-label="Поиск по проекту"
       ></div>
       <p id="symbol-status" class="ut-console-subtle" role="status"></p>
     </dialog>
@@ -640,22 +651,6 @@
         aria-label="Места вызова метода"
       ></div>
       <p id="references-status" class="ut-console-subtle" role="status"></p>
-    </dialog>
-    <dialog id="git-diff-dialog" class="ut-dialog ut-git-diff-dialog">
-      <div class="ut-dialog-heading">
-        <h2 id="git-diff-title">Изменения</h2>
-        <button
-          class="ut-icon-button"
-          data-close="git-diff-dialog"
-          aria-label="Закрыть изменения"
-        >
-          ×
-        </button>
-      </div>
-      <div
-        id="git-diff-editor"
-        aria-label="Git diff: исходный и изменённый файл"
-      ></div>
     </dialog>
   </body>
 </html>

@@ -3,6 +3,7 @@ import { FitAddon } from "./terminal-vendor/fit.mjs";
 import { themes, themeId } from "./themes.js";
 import { fonts } from "./appearance.js";
 import { element, button } from "./ui-elements.js";
+import { icon } from "./icons.js";
 
 export class TerminalPanel {
   sessions = new Map();
@@ -14,15 +15,14 @@ export class TerminalPanel {
     this.select = element("select", "ut-side-input");
     this.select.setAttribute("aria-label", "Терминалы");
     this.select.onchange = () => this.activate(this.select.value);
+    const clear = button("", () => this.clear(), "Очистить экран терминала");
+    clear.setAttribute("aria-label", clear.title);
+    clear.append(icon("clear"));
     toolbar.append(
       this.select,
       button("+", () => this.create().catch(ctx.report), "Новый терминал"),
       button("×", () => this.close().catch(ctx.report), "Закрыть терминал"),
-      button(
-        "Очистить",
-        () => this.current()?.terminal.clear(),
-        "Очистить экран терминала",
-      ),
+      clear,
     );
     this.host = element("div", "ut-terminal-host");
     this.empty = element(
@@ -118,6 +118,7 @@ export class TerminalPanel {
       };
       this.sessions.set(result.id, session);
       terminal.onData((data) => {
+        if (session.closing) return;
         session.input += data;
         if (!session.flushTimer)
           session.flushTimer = setTimeout(() => this.flush(session), 8);
@@ -151,6 +152,7 @@ export class TerminalPanel {
     this.select.value = id;
     this.fit();
     this.current()?.terminal.focus();
+    this.ctx.updateStatus();
   }
   renderTabs() {
     this.select.replaceChildren();
@@ -171,6 +173,7 @@ export class TerminalPanel {
     session.flushTimer = null;
     const data = session.input;
     session.input = "";
+    if (session.closing) return;
     if (session.id === this.active) this.fitNow();
     for (let at = 0; at < data.length; at += 8000) {
       const chunk = data.slice(at, at + 8000);
@@ -182,7 +185,7 @@ export class TerminalPanel {
     }
   }
   async poll(session) {
-    if (session.polling) return;
+    if (session.polling || session.closing) return;
     const visible =
       !this.root.classList.contains("ut-hidden") && session.id === this.active;
     if (!visible && Date.now() - (session.lastPoll || 0) < 700) return;
@@ -198,12 +201,14 @@ export class TerminalPanel {
         session.alive = false;
         session.terminal.writeln("\r\n" + error.message);
         this.renderTabs();
+        this.ctx.updateStatus();
       }
     } finally {
       session.polling = false;
     }
   }
   consume(session, result) {
+    const changed = session.alive !== result.alive;
     if (result.truncated)
       session.terminal.writeln("\r\n[Часть старого вывода пропущена]\r\n");
     for (const event of result.events || [])
@@ -218,6 +223,7 @@ export class TerminalPanel {
       this.renderTabs();
     }
     session.alive = result.alive;
+    if (changed) this.ctx.updateStatus();
   }
   fit() {
     clearTimeout(this.fitTimer);
@@ -225,7 +231,12 @@ export class TerminalPanel {
   }
   fitNow() {
     const session = this.current();
-    if (!session || this.root.classList.contains("ut-hidden")) return;
+    if (
+      !session ||
+      session.closing ||
+      this.root.classList.contains("ut-hidden")
+    )
+      return;
     try {
       const proposed = session.fit.proposeDimensions();
       if (!proposed || this.host.clientHeight < 1 || this.host.clientWidth < 1)
@@ -287,15 +298,25 @@ export class TerminalPanel {
   }
   async close() {
     const session = this.current();
-    if (!session) return;
+    if (!session || session.closing) return;
     clearTimeout(session.flushTimer);
-    await this.call(session, "close");
+    session.input = "";
+    session.closing = true;
+    await session.queue;
+    try {
+      await this.call(session, "close");
+    } catch (error) {
+      session.closing = false;
+      throw error;
+    }
     session.terminal.dispose();
+    session.container.remove();
     this.sessions.delete(session.id);
     this.active = null;
     this.renderTabs();
     if (this.sessions.size) this.activate(this.sessions.keys().next().value);
     else this.host.append(this.empty);
+    this.ctx.updateStatus();
   }
   clear() {
     this.current()?.terminal.clear();

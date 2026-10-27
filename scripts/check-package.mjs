@@ -58,6 +58,29 @@ try {
   assert.equal(session.version, "0.5.0");
   assert.ok(session.elementDebug);
   console.log("PASS: packaged version 0.5.0 and native debugger discovery");
+  for (const icon of [
+    "folder",
+    "element-file",
+    "files",
+    "todo",
+    "git",
+    "debug",
+    "http",
+    "clear",
+    "stop",
+    "run",
+    "format",
+  ]) {
+    const response = await fetch(origin + `/icons/${icon}.png`);
+    assert.equal(response.status, 200);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    assert.deepEqual([...bytes.slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  }
+  assert.doesNotMatch(
+    await fetch(origin + "/app.html").then((r) => r.text()),
+    /git-diff-dialog|⌕ Символы/,
+  );
+  console.log("PASS: generated icon assets and integrated Git diff workspace");
   for (const file of [
     "devtools.js",
     "debug-view.js",
@@ -275,6 +298,6 @@ try {
   console.log("PASS: packaged rename updates project entry");
 } finally {
   await raw("debug/stop").catch(() => {});
-  backend.shutdown();
+  await backend.shutdown();
 }
 process.exit(0);

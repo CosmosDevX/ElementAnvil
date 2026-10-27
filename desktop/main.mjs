@@ -42,7 +42,13 @@ else {
     pendingFiles.push(filename);
   });
   app.on("window-all-closed", () => app.quit());
-  app.on("will-quit", () => backend?.shutdown());
+  let shuttingDown = false;
+  app.on("will-quit", (event) => {
+    if (!backend || shuttingDown) return;
+    event.preventDefault();
+    shuttingDown = true;
+    backend.shutdown().finally(() => app.quit());
+  });
 
   app.whenReady().then(async () => {
     try {

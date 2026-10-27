@@ -1,4 +1,5 @@
 import { themes } from "./themes.js";
+import { installIcons, icon } from "./icons.js";
 import { projectFile } from "./document-uri.js";
 import { DevTools } from "./devtools.js";
 import { FileActions } from "./file-actions.js";
@@ -54,6 +55,7 @@ let session,
   entryKind = "file",
   projectBusy = false,
   running = false,
+  runCancelled = false,
   runningName = null,
   diagnosticBusy = false,
   diagnosticTimer,
@@ -629,6 +631,7 @@ function createModel(name, text) {
   return model;
 }
 async function openFile(name, provided) {
+  if (devtools?.view === "git") devtools.show("files");
   if (!models.has(name)) {
     const file =
       provided || (await api("file/read", projectData({ path: name })));
@@ -670,6 +673,7 @@ function renderTabs() {
     const label = document.createElement("span");
     label.className = "ut-tab-label";
     label.textContent = basename(name);
+    if (languageOf(name) === "sbsl") tab.append(icon("element-file"));
     tab.append(label);
     if (dirty.has(name)) {
       const mark = document.createElement("span");
@@ -800,6 +804,11 @@ function updateStatus() {
   $("run-project-choice").disabled = $("run").disabled;
   $("debug-project-choice").disabled = $("debug-start").disabled;
   $("terminal-tab").disabled = !session.project || !session.terminal;
+  $("stop").disabled = !(
+    running ||
+    devtools?.debug.active ||
+    (consolePanel === "terminal" && terminalPanel?.current()?.alive)
+  );
 }
 async function reloadProjectFiles() {
   const previous = currentName;
@@ -833,6 +842,7 @@ function selectConsole(panel) {
     $(`${name}-tab`).classList.toggle("ut-selected", name === panel);
   }
   if (panel === "terminal") terminalPanel?.fit();
+  updateStatus();
 }
 function renderProblems() {
   const list = $("problems");
@@ -918,12 +928,22 @@ async function refreshDiagnostics() {
     diagnosticBusy = false;
   }
 }
+async function stopProgram() {
+  if (running) {
+    runCancelled = true;
+    await api("stop", projectData());
+  } else if (devtools?.debug.active) await devtools.debug.stop();
+  else if (consolePanel === "terminal") await terminalPanel.close();
+  updateStatus();
+}
 async function run(selectedFile) {
   if (running || fileMutation || !session.project) return;
   running = true;
+  runCancelled = false;
   updateStatus();
   try {
     await saveBeforeAction();
+    if (runCancelled) return;
     const name =
       typeof selectedFile === "string"
         ? selectedFile
@@ -933,9 +953,9 @@ async function run(selectedFile) {
     const text =
       models.get(name)?.getValue() ??
       (await api("file/read", projectData({ path: name }))).text;
+    if (runCancelled) return;
     anomalies.end();
     updateStatus();
-    $("stop").disabled = false;
     $("run").querySelector("span").textContent = "Выполняется";
     selectConsole("output");
     $("output").replaceChildren();
@@ -958,7 +978,6 @@ async function run(selectedFile) {
   } finally {
     running = false;
     runningName = null;
-    $("stop").disabled = true;
     $("run").querySelector("span").textContent = "Запустить";
     updateStatus();
   }
@@ -1041,8 +1060,6 @@ function settings(patch) {
     });
 }
 function bind() {
-  $("git-diff-button").onclick = () =>
-    currentName && devtools.diff.show(currentName);
   $("project-symbols").onclick = () =>
     session.project ? projectSearch.show() : notice("Сначала открой проект.");
   $("http-client-button").onclick = async () => {
@@ -1134,7 +1151,15 @@ function bind() {
       $("run-menu").classList.add("ut-hidden");
   });
   $("debug-start").onclick = () => devtools.debug.start();
-  $("stop").onclick = () => api("stop").catch(report);
+  $("stop").onclick = () => stopProgram().catch(report);
+  $("close-console").onclick = async () => {
+    try {
+      if (consolePanel === "terminal") await terminalPanel.close();
+      panels.mode("closed");
+    } catch (error) {
+      report(error);
+    }
+  };
   for (const panel of ["output", "problems"])
     $(`${panel}-tab`).onclick = () => selectConsole(panel);
   $("terminal-tab").onclick = () => terminalPanel.show().catch(report);
@@ -1197,8 +1222,7 @@ function bind() {
     suggest: () => editorCommand("editor.action.triggerSuggest"),
     run: () => run(),
     debug: () => devtools.debug.start(),
-    stop: () =>
-      devtools.debug.active ? devtools.debug.command("stop") : api("stop"),
+    stop: stopProgram,
     breakpoint: () => devtools.debug.toggle(editor.getPosition().lineNumber),
     next: () => devtools.debug.active && devtools.debug.command("next"),
     stepIn: () => devtools.debug.active && devtools.debug.command("stepIn"),
@@ -1423,6 +1447,11 @@ async function initialize() {
     saveAll: saveBeforeAction,
     report,
     updateStatus,
+    showGit: (visible) => {
+      $("editor-wrap").classList.toggle("ut-hidden", visible);
+      $("git-workspace").classList.toggle("ut-hidden", !visible);
+      editor.layout();
+    },
     reloadFiles: reloadProjectFiles,
     showExplorer: () => {
       if (panels.state.explorerHidden) panels.toggleExplorer();
@@ -1448,6 +1477,7 @@ async function initialize() {
     show: () => selectConsole("terminal"),
     report,
     copy: copyText,
+    updateStatus,
   });
   fileActions = new FileActions({
     report,
@@ -1528,9 +1558,10 @@ async function initialize() {
     canRun: () =>
       !!session.project &&
       (!!session.project.entry || languageOf(currentName) === "sbsl"),
-    runProject: () => (running ? api("stop").catch(report) : run()),
+    runProject: () => (running ? stopProgram().catch(report) : run()),
   });
   bind();
+  installIcons();
   window.unexploredWindow?.onSaveBeforeClose(async () => {
     try {
       await saveAll();

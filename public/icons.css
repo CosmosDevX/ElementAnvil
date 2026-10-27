@@ -1,0 +1,49 @@
+.ut-generated-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  object-fit: contain;
+  transform: scale(1.35);
+  vertical-align: middle;
+  pointer-events: none;
+  user-select: none;
+}
+.ut-side-tabs {
+  height: 54px;
+}
+.ut-side-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 3px;
+}
+.ut-text-button,
+.ut-secondary {
+  gap: 6px;
+}
+.ut-tree-item > .ut-generated-icon {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
+}
+.ut-file-tab > .ut-generated-icon {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+}
+.ut-http-folder > .ut-generated-icon {
+  margin-right: 6px;
+}
+.ut-start-card > .ut-generated-icon {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+}
+button:disabled > .ut-generated-icon {
+  opacity: 0.4;
+}
+html[data-theme="enterprise"] .ut-generated-icon {
+  filter: brightness(0.62) saturate(1.3);
+}

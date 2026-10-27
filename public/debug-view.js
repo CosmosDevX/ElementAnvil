@@ -1,4 +1,5 @@
 import { element, button } from "./ui-elements.js";
+import { icon } from "./icons.js";
 const $ = (id) => document.getElementById(id);
 export class DebugView {
   points = new Map();
@@ -28,6 +29,8 @@ export class DebugView {
       ["stop", "■", "Завершить отладку · Shift+F5"],
     ]) {
       const node = button(label, () => this.command(command), title);
+      if (command === "continue" || command === "stop")
+        node.replaceChildren(icon(command === "stop" ? "stop" : "run"));
       node.setAttribute("aria-label", title);
       this.commands[command] = node;
       this.toolbar.append(node);
@@ -134,6 +137,7 @@ export class DebugView {
     if (this.active)
       return this.state === "stopped" ? this.command("continue") : undefined;
     if (!this.ctx.project()) return;
+    this.cancelled = false;
     this.filename =
       typeof filename === "string"
         ? filename
@@ -144,6 +148,7 @@ export class DebugView {
     this.render();
     try {
       await this.ctx.saveAll();
+      if (this.cancelled) return;
       this.ctx.showDebug();
       this.status.textContent = "Подключение…";
       this.active = true;
@@ -162,7 +167,16 @@ export class DebugView {
       this.cursor = 0;
       this.id = result.id;
       this.consume(result);
+      if (this.cancelled) await this.stop();
     } catch (error) {
+      if (this.cancelled) {
+        this.active = false;
+        this.state = "terminated";
+        this.ctx.editor.updateOptions({ readOnly: false });
+        this.render();
+        this.ctx.updateStatus();
+        return;
+      }
       // A compilation error may finish the process before DAP can attach.
       // Recover its stdout/stderr even though start did not return a session id.
       try {
@@ -260,8 +274,19 @@ export class DebugView {
       this.highlight();
     }
   }
+  async stop() {
+    this.cancelled = true;
+    await this.ctx.api("stop", { projectId: this.ctx.project().id });
+    this.active = false;
+    this.state = "terminated";
+    this.ctx.editor.updateOptions({ readOnly: false });
+    this.render();
+    this.ctx.updateStatus();
+    await this.poll();
+  }
   async command(command) {
     if (!this.active) return;
+    if (command === "stop") return this.stop().catch(this.ctx.report);
     try {
       const result = await this.call(command, { threadId: this.threadId });
       this.consume(result);
@@ -481,7 +506,7 @@ export class DebugView {
     for (const [command, node] of Object.entries(this.commands))
       node.disabled =
         command === "stop"
-          ? !this.active || this.state === "starting"
+          ? !this.active
           : command === "pause"
             ? this.state !== "running"
             : this.state !== "stopped";

@@ -11,7 +11,11 @@ export class DevTools {
   constructor(context) {
     this.ctx = context;
     this.debug = new DebugView(context);
-    this.diff = new GitDiff(context);
+    this.diff = new GitDiff({
+      ...context,
+      revealGit: () => this.show("git"),
+      closeGit: () => this.show("files"),
+    });
     for (const node of document.querySelectorAll("[data-side-view]"))
       node.onclick = () => this.show(node.dataset.sideView);
     this.todo = $("todos-view");
@@ -46,6 +50,7 @@ export class DevTools {
     this.todoItems = [];
     this.todoMarks.clear();
     this.gitStatus = null;
+    this.diff.dispose();
     this.debug.reset();
     this.todoList.replaceChildren();
     this.gitFiles.replaceChildren();
@@ -53,6 +58,7 @@ export class DevTools {
   }
   show(view) {
     this.view = view;
+    this.ctx.showGit(view === "git");
     this.ctx.showExplorer();
     for (const node of document.querySelectorAll("[data-side-view]"))
       node.setAttribute("aria-pressed", String(node.dataset.sideView === view));
@@ -164,6 +170,14 @@ export class DevTools {
     const heading = element("div", "ut-side-heading");
     heading.append(
       element("strong", "", "Git"),
+      button(
+        "Diff",
+        () => {
+          const name = this.ctx.currentName();
+          if (name) this.diff.show(name);
+        },
+        "Git diff текущего файла",
+      ),
       button("↻", () => this.refreshGit(), "Обновить Git"),
     );
     this.gitMeta = element("div", "ut-side-meta");

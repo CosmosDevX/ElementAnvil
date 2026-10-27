@@ -1,3 +1,4 @@
+import { icon as generatedIcon } from "./icons.js";
 const $ = (id) => document.getElementById(id);
 export function createExplorer(ctx) {
   const {
@@ -48,14 +49,16 @@ export function createExplorer(ctx) {
               ? "▾"
               : "▸"
             : "";
-        const icon = document.createElement("span");
-        icon.className = "ut-tree-file-mark";
-        icon.textContent =
-          item.kind === "directory"
-            ? "▱"
-            : languageOf(item.path) === "sbsl"
-              ? "Э"
-              : "·";
+        const icon =
+          item.kind === "directory" || languageOf(item.path) === "sbsl"
+            ? generatedIcon(
+                item.kind === "directory" ? "folder" : "element-file",
+              )
+            : document.createElement("span");
+        if (icon.tagName !== "IMG") {
+          icon.className = "ut-tree-file-mark";
+          icon.textContent = "·";
+        }
         const label = document.createElement("span");
         label.className = "ut-tree-label";
         label.textContent = item.name;

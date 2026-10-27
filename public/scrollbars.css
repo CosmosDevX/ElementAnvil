@@ -25,11 +25,3 @@
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
-.ut-git-diff-dialog {
-  overflow: hidden;
-}
-#git-diff-editor {
-  height: calc(100% - 60px);
-  min-height: 140px;
-  border: 1px solid var(--border);
-}
