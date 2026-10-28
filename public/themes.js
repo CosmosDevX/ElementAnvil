@@ -1,3 +1,4 @@
+import { iconColors } from "./icon-palettes.js";
 export const themes = {
   dark: {
     name: "Графит",
@@ -116,10 +117,166 @@ export const themes = {
   },
 };
 
-export function themeId(value) {
+export const customThemeLimit = 24;
+export const themeColorKeys = [
+  "bg",
+  "panel",
+  "shell",
+  "widget",
+  "line",
+  "fg",
+  "muted",
+  "border",
+  "accent",
+  "accentBg",
+  "selection",
+  "keyword",
+  "string",
+  "number",
+  "comment",
+  "type",
+];
+const tokenColors = new Set(["keyword", "string", "number", "comment", "type"]);
+const object = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const knownKeys = (value, keys) =>
+  Object.keys(value).every((key) => keys.includes(key));
+export function validateCustomTheme(value) {
+  if (
+    !object(value) ||
+    !knownKeys(value, [
+      "schemaVersion",
+      "id",
+      "name",
+      "base",
+      "colors",
+      "icons",
+    ])
+  )
+    throw new Error(
+      "Тема должна быть JSON-объектом с полями schemaVersion, id, name, base, colors и необязательным icons.",
+    );
+  if (value.schemaVersion !== 1)
+    throw new Error("Поддерживается schemaVersion: 1.");
+  if (typeof value.id !== "string" || !/^[a-z][a-z0-9-]{0,63}$/.test(value.id))
+    throw new Error(
+      "id темы: до 64 латинских строчных букв, цифр и дефисов; первый символ — буква.",
+    );
+  if (
+    typeof value.name !== "string" ||
+    !value.name.trim() ||
+    value.name.length > 80 ||
+    /[\u0000-\u001f\u007f]/.test(value.name)
+  )
+    throw new Error("Название темы должно содержать от 1 до 80 символов.");
+  if (!Object.hasOwn(themes, value.base))
+    throw new Error("base должна указывать встроенную тему.");
+  if (!object(value.colors) || !knownKeys(value.colors, themeColorKeys))
+    throw new Error(
+      "В colors допускаются только цвета из формата тем Element Anvil.",
+    );
+  const colors = {};
+  for (const [key, color] of Object.entries(value.colors)) {
+    const pattern =
+      key === "selection" ? /^#[\da-f]{6}([\da-f]{2})?$/i : /^#[\da-f]{6}$/i;
+    if (typeof color !== "string" || !pattern.test(color))
+      throw new Error(
+        `Некорректный цвет ${key}: нужен #RRGGBB${key === "selection" ? " или #RRGGBBAA" : ""}.`,
+      );
+    colors[key] = color.toLowerCase();
+  }
+  const result = {
+    schemaVersion: 1,
+    id: value.id,
+    name: value.name.trim(),
+    base: value.base,
+    colors,
+  };
+  if (value.icons !== undefined) {
+    if (!object(value.icons) || !knownKeys(value.icons, ["color", "danger"]))
+      throw new Error("В icons допустимы color и danger.");
+    result.icons = {};
+    for (const [key, color] of Object.entries(value.icons)) {
+      if (typeof color !== "string" || !/^#[\da-f]{6}$/i.test(color))
+        throw new Error(`Некорректный цвет icons.${key}.`);
+      result.icons[key] = color.toLowerCase();
+    }
+  }
+  return result;
+}
+export function validateCustomThemes(value, strict = false) {
+  if (!Array.isArray(value) || value.length > customThemeLimit) {
+    if (strict)
+      throw new Error(
+        `Можно сохранить до ${customThemeLimit} пользовательских тем.`,
+      );
+    value = Array.isArray(value) ? value.slice(0, customThemeLimit) : [];
+  }
+  const result = [],
+    ids = new Set();
+  for (const item of value) {
+    try {
+      const theme = validateCustomTheme(item);
+      if (ids.has(theme.id))
+        throw new Error("Повторяющийся id темы: " + theme.id);
+      ids.add(theme.id);
+      result.push(theme);
+    } catch (error) {
+      if (strict) throw error;
+    }
+  }
+  return result;
+}
+export function themeId(value, customThemes = []) {
+  if (
+    typeof value === "string" &&
+    value.startsWith("custom:") &&
+    customThemes.some((theme) => "custom:" + theme.id === value)
+  )
+    return value;
   return value === "green"
     ? "forest"
     : Object.hasOwn(themes, value)
       ? value
       : "dark";
+}
+export function resolveTheme(settings) {
+  const id = themeId(settings.theme, settings.customThemes);
+  if (!id.startsWith("custom:")) return themes[id];
+  const theme = settings.customThemes.find(
+    (theme) => "custom:" + theme.id === id,
+  );
+  const palette = { ...themes[theme.base], name: theme.name };
+  for (const [key, value] of Object.entries(theme.colors))
+    palette[key] = tokenColors.has(key) ? value.slice(1) : value;
+  palette.iconColor = theme.icons?.color || palette.accent;
+  palette.iconDanger =
+    theme.icons?.danger || (palette.light ? "#b42332" : "#fda4af");
+  return palette;
+}
+export function exportTheme(settings) {
+  const id = themeId(settings.theme, settings.customThemes);
+  const custom = settings.customThemes?.find(
+    (theme) => "custom:" + theme.id === id,
+  );
+  const palette = resolveTheme(settings);
+  return {
+    schemaVersion: 1,
+    id: custom?.id || `${id}-custom`,
+    name: custom?.name || `${palette.name} · своя`,
+    base: custom?.base || id,
+    colors: Object.fromEntries(
+      themeColorKeys.map((key) => [
+        key,
+        (tokenColors.has(key) ? "#" : "") + palette[key],
+      ]),
+    ),
+    icons: themeIconColors(settings, palette),
+  };
+}
+export function themeIconColors(settings, palette = resolveTheme(settings)) {
+  return (!settings.iconPalette || settings.iconPalette === "theme") &&
+    settings.theme?.startsWith("custom:")
+    ? { color: palette.iconColor, danger: palette.iconDanger }
+    : iconColors(settings.iconPalette, palette.light, settings.theme);
 }

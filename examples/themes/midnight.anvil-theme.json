@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight",
+  "name": "Полночь",
+  "base": "dark",
+  "colors": {
+    "shell": "#080d19",
+    "bg": "#0b1120",
+    "panel": "#111a2d",
+    "widget": "#17233b",
+    "border": "#334465",
+    "fg": "#dbeafe",
+    "accent": "#67e8f9",
+    "accentBg": "#164252",
+    "selection": "#3b82f666",
+    "keyword": "#7dd3fc",
+    "string": "#a7f3d0",
+    "comment": "#8495b2"
+  },
+  "icons": {
+    "color": "#67e8f9",
+    "danger": "#fda4af"
+  }
+}

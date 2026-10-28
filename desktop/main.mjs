@@ -102,7 +102,12 @@ else {
       Menu.setApplicationMenu(null);
       window = new BrowserWindow({
         title: "Element Anvil",
-        icon: path.join(import.meta.dirname, "../build/icon.ico"),
+        icon: path.join(
+          import.meta.dirname,
+          process.platform === "win32"
+            ? "../build/icon.ico"
+            : "../build/icon.png",
+        ),
         width: 1440,
         height: 940,
         minWidth: 900,

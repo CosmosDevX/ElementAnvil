@@ -1,5 +1,4 @@
-import { themes as palettes, themeId } from "./themes.js";
-import { iconColors } from "./icon-palettes.js";
+import { resolveTheme, themeId, themeIconColors } from "./themes.js";
 export const fonts = [
   { id: "jetbrains-mono", name: "JetBrains Mono", family: "JetBrains Mono" },
   { id: "fira-code", name: "Fira Code", family: "Fira Code" },
@@ -12,9 +11,13 @@ export const fonts = [
   },
 ];
 export function applyAppearance(monaco, editor, settings) {
-  const p = palettes[themeId(settings.theme)],
+  const p = resolveTheme(settings),
     font = fonts.find((item) => item.id === settings.font) || fonts[0];
-  document.documentElement.dataset.theme = themeId(settings.theme);
+  const icons = themeIconColors(settings, p);
+  document.documentElement.dataset.theme = themeId(
+    settings.theme,
+    settings.customThemes,
+  );
   document.documentElement.style.setProperty(
     "--icon-scale",
     String((settings.iconSize || 100) / 100),
@@ -32,10 +35,8 @@ export function applyAppearance(monaco, editor, settings) {
     "accent-bg": p.accentBg,
     hover: p.line,
     selection: p.selection,
-    "icon-color": iconColors(settings.iconPalette, p.light, settings.theme)
-      .color,
-    "icon-danger": iconColors(settings.iconPalette, p.light, settings.theme)
-      .danger,
+    "icon-color": icons.color,
+    "icon-danger": icons.danger,
   };
   for (const [name, value] of Object.entries(variables))
     document.documentElement.style.setProperty("--" + name, value);

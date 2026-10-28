@@ -1,0 +1,11 @@
+FROM node:24-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 build-essential pkg-config git ca-certificates \
+    libgtk-3-0 libnss3 libasound2 libgbm1 libxss1 libsecret-1-0 \
+    libatk-bridge2.0-0 libdrm2 libxkbcommon0 libx11-xcb1 \
+    xvfb xauth xz-utils fakeroot dpkg openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /project
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8

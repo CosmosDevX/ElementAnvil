@@ -1,6 +1,6 @@
 import { Terminal } from "./terminal-vendor/xterm.mjs";
 import { FitAddon } from "./terminal-vendor/fit.mjs";
-import { themes, themeId } from "./themes.js";
+import { resolveTheme } from "./themes.js";
 import { fonts } from "./appearance.js";
 import { element, button } from "./ui-elements.js";
 import { icon } from "./icons.js";
@@ -266,7 +266,7 @@ export class TerminalPanel {
   }
   appearance() {
     const settings = this.ctx.settings(),
-      palette = themes[themeId(settings.theme)],
+      palette = resolveTheme(settings),
       font = fonts.find((item) => item.id === settings.font) || fonts[0];
     for (const session of this.sessions.values()) {
       session.terminal.options.theme = {

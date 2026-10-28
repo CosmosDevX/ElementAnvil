@@ -1,15 +1,22 @@
 {
   "name": "unexplored-editor",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
+  "desktopName": "element-anvil.desktop",
   "author": "CosmosDevX",
+  "homepage": "https://github.com/CosmosDevX/UnexploredCodeEdtior",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CosmosDevX/UnexploredCodeEdtior.git"
+  },
   "description": "Desktop code editor for 1C Element",
   "scripts": {
     "start": "electron .",
     "start:web": "node server.mjs",
-    "build:win": "electron-builder --win --x64 --publish never",
+    "build:win": "electron-builder --win --x64 --publish never --config build/platform-config.cjs",
+    "build:linux": "electron-builder --linux --x64 --publish never --config build/platform-config.cjs",
     "test": "node --test tests/*.test.mjs",
     "test:integration": "node scripts/integration.mjs",
     "test:lsp": "node scripts/check-element-lsp.mjs",
@@ -17,11 +24,13 @@
     "test:terminal": "node scripts/check-terminal.mjs",
     "test:appearance": "electron scripts/check-appearance.mjs",
     "test:hovers": "electron scripts/check-hovers.mjs",
+    "test:themes": "electron scripts/check-custom-themes.mjs",
     "fonts": "node scripts/bundle-fonts.mjs",
     "verify:element": "node scripts/verify-element.mjs",
     "prestart": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs && node node_modules/electron/install.js",
     "format": "prettier --write \"{desktop,lib,public,scripts,tests}/**/*.{mjs,js,html,css}\" server.mjs package.json README.md",
     "prebuild:win": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs",
+    "prebuild:linux": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs",
     "prestart:web": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs"
   },
   "dependencies": {
@@ -35,6 +44,7 @@
   "build": {
     "appId": "dev.cosmosdevx.unexplorededitor",
     "productName": "Element Anvil",
+    "beforePack": "scripts/prepare-native.cjs",
     "directories": {
       "output": "release"
     },
@@ -48,6 +58,7 @@
       "node_modules/monaco-editor/min/**",
       "node_modules/monaco-editor/LICENSE",
       "build/icon.ico",
+      "build/icon.png",
       "!node_modules/monaco-editor/esm/**",
       "!node_modules/monaco-editor/dev/**",
       "!node_modules/monaco-editor/min-maps/**",
@@ -58,7 +69,6 @@
       "!node_modules/node-pty/third_party/**",
       "!node_modules/node-pty/build/**",
       "!node_modules/node-pty/prebuilds/darwin-*/**",
-      "!node_modules/node-pty/prebuilds/linux-*/**",
       "!node_modules/node-pty/prebuilds/win32-arm64/**",
       "!node_modules/**/*.map",
       "!node_modules/**/*.pdb",
@@ -102,6 +112,25 @@
       "artifactName": "ElementAnvil-${version}-Setup.exe",
       "shortcutName": "Element Anvil",
       "createDesktopShortcut": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "icon": "build/icon.png",
+      "executableName": "element-anvil",
+      "syncDesktopName": true,
+      "artifactName": "ElementAnvil-${version}-Linux-${arch}.${ext}",
+      "maintainer": "CosmosDevX",
+      "desktop": {
+        "entry": {
+          "Name": "Element Anvil",
+          "Comment": "Unofficial code editor for 1C Element Script",
+          "Categories": "Development;IDE;"
+        }
+      }
     },
     "electronLanguages": [
       "en-US",

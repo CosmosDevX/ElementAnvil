@@ -523,6 +523,33 @@
       >
         <label class="ut-setting-label">Тема</label>
         <div class="ut-theme-options" id="theme-options"></div>
+        <div class="ut-theme-tools">
+          <button id="theme-import" class="ut-secondary">
+            Импортировать тему…
+          </button>
+          <button id="theme-export" class="ut-secondary">
+            Экспортировать текущую
+          </button>
+          <button id="theme-remove" class="ut-secondary" disabled>
+            Удалить тему
+          </button>
+          <input
+            id="theme-file"
+            type="file"
+            accept=".json,application/json"
+            hidden
+          />
+        </div>
+        <p class="ut-console-subtle">
+          Экспортируйте образец, измените цвета в JSON и импортируйте файл. Темы
+          сохраняются в настройках.
+        </p>
+        <p
+          id="theme-message"
+          class="ut-console-subtle"
+          role="status"
+          aria-live="polite"
+        ></p>
         <label class="ut-setting-label" for="icon-palette">Цвет иконок</label>
         <select id="icon-palette" aria-describedby="icon-palette-hint"></select>
         <div id="icon-preview" class="ut-icon-preview" aria-hidden="true"></div>

@@ -1,4 +1,4 @@
-import { themes } from "./themes.js";
+import { ThemeSettings } from "./theme-settings.js";
 import { EditorGroups } from "./editor-groups.js";
 import { createCodeEditor } from "./editor-overlays.js";
 import { iconPalettes, iconPaletteId } from "./icon-palettes.js";
@@ -41,7 +41,7 @@ const diskTexts = new WeakMap();
 const diskGuards = new WeakMap();
 const modelWrites = new WeakMap();
 const deletingFiles = new Set();
-let groups, draggedTab;
+let groups, draggedTab, themeSettings;
 let silentModelChange = false;
 let session,
   editor,
@@ -1237,6 +1237,7 @@ function updateLaunchLabel() {
   }[session.settings.launchMode || "run-project"];
 }
 function renderSettings() {
+  themeSettings?.render();
   updateLaunchLabel();
   $("icon-size").value = session.settings.iconSize || 100;
   $("icon-size-value").textContent = `${session.settings.iconSize || 100}%`;
@@ -1476,8 +1477,6 @@ function bind() {
   });
   for (const button of document.querySelectorAll("[data-close]"))
     button.onclick = () => $(button.dataset.close).close();
-  for (const button of document.querySelectorAll("[data-theme-choice]"))
-    button.onclick = () => settings({ theme: button.dataset.themeChoice });
   $("font-select").onchange = () => settings({ font: $("font-select").value });
   $("icon-palette").onchange = () =>
     settings({ iconPalette: $("icon-palette").value });
@@ -1769,17 +1768,10 @@ async function initialize() {
       editor.focus();
     },
   });
-  for (const [id, palette] of Object.entries(themes)) {
-    const button = document.createElement("button");
-    button.className = "ut-theme-choice";
-    button.dataset.themeChoice = id;
-    const swatch = document.createElement("i");
-    swatch.className = "ut-swatch";
-    swatch.style.background = palette.bg;
-    swatch.style.color = "#" + palette.keyword;
-    button.append(swatch, palette.name);
-    $("theme-options").append(button);
-  }
+  themeSettings = new ThemeSettings({
+    settings: () => session.settings,
+    change: settings,
+  });
   for (const font of fonts) {
     const option = document.createElement("option");
     option.value = font.id;

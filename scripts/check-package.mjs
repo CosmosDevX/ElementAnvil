@@ -60,9 +60,14 @@ async function stopped(after = 0) {
   throw Error("No stopped event");
 }
 try {
-  assert.equal(session.version, "0.7.0");
+  const expectedVersion = JSON.parse(
+    await readFile(path.join(archive, "package.json"), "utf8"),
+  ).version;
+  assert.equal(session.version, expectedVersion);
   assert.ok(session.elementDebug);
-  console.log("PASS: packaged version 0.7.0 and native debugger discovery");
+  console.log(
+    `PASS: packaged version ${expectedVersion} and native debugger discovery`,
+  );
   for (const icon of [
     "folder",
     "element-file",
@@ -227,7 +232,10 @@ try {
     terminalCursor = 0;
   await post("terminal/write", {
     terminalId: terminal.id,
-    data: "executor .\\Скрипт.sbsl\r",
+    data:
+      process.platform === "win32"
+        ? "executor .\\Скрипт.sbsl\r"
+        : "executor ./Скрипт.sbsl\r",
   });
   const terminalEnd = Date.now() + 20000;
   while (Date.now() < terminalEnd) {
@@ -286,7 +294,7 @@ try {
     text: 'метод Скрипт()\n    Консоль.Записать("ВЫВОД-ПАКЕТА")\n    пер Ноль = 0\n    Консоль.Записать(1 / Ноль)\n;\n',
   });
   assert.match(failed.stdout, /ВЫВОД-ПАКЕТА/);
-  assert.match(failed.stderr, /Деление на ноль/);
+  assert.match(failed.stderr, /Деление на ноль|Division by zero/i);
   assert.notEqual(failed.code, 0);
   console.log(
     "PASS: packaged symbols, custom keys, collection notes, brand/icon and executor error output",

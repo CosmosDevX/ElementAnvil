@@ -848,6 +848,15 @@ button.ut-icon-button:focus-visible {
   grid-template-columns: repeat(3, 1fr);
   gap: 9px;
 }
+.ut-theme-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+#theme-message:empty {
+  display: none;
+}
 .ut-theme-choice {
   padding: 9px;
   border: 1px solid var(--border);
