@@ -17,6 +17,17 @@
   height: 26px;
   flex-basis: 26px;
 }
+.ut-editor-actions .ut-generated-icon {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+}
+.ut-editor-actions .ut-mono-icon {
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
+  transform: none;
+}
 .ut-side-tabs {
   height: 62px;
   overflow-x: auto;

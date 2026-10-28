@@ -857,7 +857,8 @@ function updateStatus() {
       ? "Изменено"
       : "Сохранено"
     : "";
-  $("breadcrumb-file").textContent = currentName || "";
+  $("save").title =
+    `Сохранить · ${shortcut("save")}${currentName ? " · " + $("save-state").textContent : ""}`;
   $("cursor-position").textContent = p
     ? `Стр ${p.lineNumber}, стлб ${p.column}`
     : "";
@@ -897,13 +898,13 @@ function updateStatus() {
   $("debug-start").title = devtools?.debug.active
     ? `Продолжить отладку: ${devtools.debug.filename}`
     : `Отладить проект: ${target || "не выбран .sbsl"} · ${shortcut("debug")}`;
-  $("run").querySelector("kbd").textContent = shortcut("run");
   $("run-file-choice").disabled = $("run").disabled || lang !== "sbsl";
   $("debug-file-choice").disabled =
     $("debug-start").disabled || devtools?.debug.active || lang !== "sbsl";
   $("run-project-choice").disabled = $("run").disabled;
   $("debug-project-choice").disabled = $("debug-start").disabled;
   $("terminal-tab").disabled = !session.project || !session.terminal;
+  $("open-terminal").disabled = $("terminal-tab").disabled;
   $("stop").disabled = !(
     running ||
     devtools?.debug.active ||
@@ -1114,7 +1115,7 @@ async function run(selectedFile) {
     if (runCancelled) return;
     anomalies.end();
     updateStatus();
-    $("run").querySelector("span").textContent = "Выполняется";
+    $("run").setAttribute("aria-busy", "true");
     selectConsole("output");
     $("output").replaceChildren();
     append(`› ${name}`, "ut-console-subtle");
@@ -1136,7 +1137,7 @@ async function run(selectedFile) {
   } finally {
     running = false;
     runningName = null;
-    $("run").querySelector("span").textContent = "Запустить";
+    $("run").removeAttribute("aria-busy");
     updateStatus();
   }
 }
@@ -1171,6 +1172,7 @@ function renderSettings() {
     ["settings-button", "settings", "Настройки"],
     ["toggle-console", "console", "Показать или скрыть вывод"],
     ["terminal-tab", "terminal", "Терминал"],
+    ["open-terminal", "terminal", "Открыть терминал"],
   ])
     $(id).title = `${label} · ${shortcut(command)}`;
   $("run-project-choice").textContent = `Запустить проект · ${shortcut("run")}`;
@@ -1320,6 +1322,7 @@ function bind() {
   for (const panel of ["output", "problems"])
     $(`${panel}-tab`).onclick = () => selectConsole(panel);
   $("terminal-tab").onclick = () => terminalPanel.show().catch(report);
+  $("open-terminal").onclick = () => terminalPanel.show().catch(report);
   $("clear-console").onclick = () => {
     if (consolePanel === "terminal") terminalPanel.clear();
     if (consolePanel === "output") $("output").replaceChildren();

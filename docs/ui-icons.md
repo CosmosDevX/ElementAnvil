@@ -1,5 +1,19 @@
 # Иконки интерфейса Element Anvil
 
+В 0.6.1 встроенным ImageGen отдельно созданы янтарные `public/icons/save.png` и `public/icons/terminal.png` с transparent_background=true. Они используются как CSS-маски вместе с существующим набором. Точные промпты:
+
+### save.png
+
+```text
+Use case: logo-brand. One production toolbar icon for the Element Anvil desktop code editor. Exactly ONE isolated save icon: a simple floppy disk outline with a short top inset and one bottom rectangular inset. Solid muted amber strokes #E5BC73 RGB 229 188 115. Genuinely transparent background including inside outline shapes. Match our existing amber outline folder, document, refresh and globe icons. Flat geometric monoline, consistent stroke thickness equivalent to 2 pixels on a 24x24 grid, rounded caps and joins. Centered, occupying about 78 percent of the square canvas. Readable at 20 pixels. No text, letters, labels, gradients, shadows, glow, bevels, texture, panels behind the icon, or decorative particles.
+```
+
+### terminal.png
+
+```text
+Use case: logo-brand. One production toolbar icon for the Element Anvil desktop code editor. Exactly ONE isolated terminal icon: a small rectangular console window outline with a simple command chevron and a short horizontal underscore inside. Solid muted amber strokes #E5BC73 RGB 229 188 115. Genuinely transparent background including inside outline shapes. Match our existing amber outline folder, document, refresh and globe icons. Flat geometric monoline, consistent stroke thickness equivalent to 2 pixels on a 24x24 grid, rounded caps and joins. Centered, occupying about 78 percent of the square canvas. Readable at 20 pixels. No text, letters, labels, gradients, shadows, glow, bevels, texture, panels behind the icon, or decorative particles.
+```
+
 В 0.6.0 добавлена сгенерированная встроенным ImageGen иконка обновления `public/icons/refresh.png` с прозрачным фоном. Она использует ту же янтарную CSS-маску. В дереве файлов и возле названия проекта размер иконок уменьшен до 18 px; вкладки панелей сохраняют прежний размер.
 
 ```text

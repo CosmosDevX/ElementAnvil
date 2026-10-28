@@ -74,7 +74,9 @@
 .ut-brand img {
   width: 26px;
   height: 26px;
-  margin-right: 8px;
+  margin-right: 0;
+  display: block;
+  flex-shrink: 0;
 }
 :root[data-theme="enterprise"] .ut-console-error {
   color: #a12c35;

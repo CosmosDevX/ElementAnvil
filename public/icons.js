@@ -7,6 +7,8 @@ export function icon(name) {
     "search",
     "files",
     "refresh",
+    "save",
+    "terminal",
   ].includes(name);
   const image = document.createElement(monochrome ? "span" : "img");
   image.className = "ut-generated-icon" + (monochrome ? " ut-mono-icon" : "");
@@ -26,7 +28,6 @@ export function installIcons() {
     ['[data-side-view="todos"]', "todo"],
     ['[data-side-view="git"]', "git"],
     ['[data-side-view="debug"]', "debug"],
-    ["#debug-start", "debug"],
     ["#http-client-button", "http"],
     ["#home-http-client", "http"],
     ['[data-side-view="http"]', "http"],
@@ -41,6 +42,9 @@ export function installIcons() {
     node.prepend(icon(name));
   }
   for (const [selector, name] of [
+    ["#save", "save"],
+    ["#open-terminal", "terminal"],
+    ["#debug-start", "debug"],
     ["#format", "format"],
     ["#stop", "stop"],
     ["#clear-console", "clear"],

@@ -1,4 +1,4 @@
-# Element Anvil 0.6.0
+# Element Anvil 0.6.1
 
 ## Границы ответственности
 

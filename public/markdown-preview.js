@@ -1,5 +1,6 @@
 import MarkdownIt from "./markdown/markdown-it.mjs";
 import DOMPurify from "./markdown/purify.mjs";
+import { icon } from "./icons.js";
 
 const markdown = new MarkdownIt({ html: false, linkify: false, breaks: false });
 markdown.renderer.rules.image = (tokens, index) =>
@@ -53,7 +54,17 @@ export class MarkdownPreview {
   update() {
     const markdownFile = this.editor.getModel()?.getLanguageId() === "markdown";
     this.button.classList.toggle("ut-hidden", !markdownFile);
-    this.button.textContent = this.active ? "К исходнику" : "Просмотр Markdown";
+    const label = this.active ? "К исходнику Markdown" : "Просмотр Markdown";
+    this.button.title = label;
+    this.button.setAttribute("aria-label", label);
+    if (this.active) this.button.replaceChildren(icon("element-file"));
+    else {
+      const eye = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      eye.setAttribute("viewBox", "0 0 24 24");
+      eye.innerHTML =
+        '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>';
+      this.button.replaceChildren(eye);
+    }
     this.button.setAttribute("aria-pressed", String(this.active));
     this.container.classList.toggle("ut-hidden", !this.active);
     document

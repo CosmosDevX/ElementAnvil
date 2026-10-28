@@ -75,6 +75,11 @@ svg {
   border-bottom: 1px solid var(--border);
 }
 .ut-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
   font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.8px;
@@ -82,6 +87,9 @@ svg {
 }
 .ut-brand span {
   color: var(--accent);
+}
+.ut-brand > .ut-brand-name {
+  color: var(--text);
 }
 .ut-project-title {
   color: var(--muted);
@@ -412,27 +420,54 @@ svg {
   color: #fff;
 }
 .ut-editor-toolbar {
-  height: 43px;
+  height: 36px;
   display: flex;
   align-items: center;
   gap: 10px;
-  justify-content: space-between;
-  padding: 0 16px;
+  justify-content: flex-end;
+  padding: 0 10px;
   border-bottom: 1px solid var(--border);
   background: var(--editor);
   flex-shrink: 0;
 }
-.ut-breadcrumb {
-  font: 10px var(--mono);
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .ut-editor-actions {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 4px;
+}
+.ut-editor-actions > .ut-icon-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  border-radius: 4px;
+}
+.ut-editor-actions > .ut-icon-button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+.ut-editor-actions > .ut-icon-button > svg {
+  width: 19px;
+  height: 19px;
+}
+.ut-editor-actions #open-terminal {
+  margin-right: 5px;
+}
+.ut-editor-actions #run-options {
+  width: 20px;
+}
+.ut-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .ut-save-state {
   font-size: 10px;
@@ -460,24 +495,6 @@ svg {
 }
 .ut-secondary:hover {
   background: var(--hover);
-}
-.ut-run-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 11px;
-  margin-left: 4px;
-}
-.ut-run-button svg {
-  width: 12px;
-  height: 12px;
-  fill: currentColor;
-  stroke: none;
-}
-.ut-run-button kbd {
-  font: 9px var(--mono);
-  color: var(--muted);
-  margin-left: 10px;
 }
 .ut-editor-wrap {
   flex: 1;
@@ -805,9 +822,6 @@ svg {
   }
   .ut-workbench {
     grid-template-columns: 180px minmax(0, 1fr);
-  }
-  .ut-run-button kbd {
-    display: none;
   }
   .ut-editor-toolbar {
     padding: 0 8px;

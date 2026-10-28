@@ -51,6 +51,9 @@
         <symbol id="i-sidebar" viewBox="0 0 24 24">
           <path d="M3 4h18v16H3V4Zm6 0v16" />
         </symbol>
+        <symbol id="i-output" viewBox="0 0 24 24">
+          <path d="M3 4h18v16H3V4Zm0 11h18" />
+        </symbol>
         <symbol id="i-refresh" viewBox="0 0 24 24">
           <path
             d="M20 7v5h-5M4 17v-5h5M5 7a8 8 0 0 1 14 1M19 17a8 8 0 0 1-14-1"
@@ -60,7 +63,9 @@
     </svg>
     <header class="ut-header">
       <button id="home-button" class="ut-brand" title="Начальное окно">
-        <img src="/icon.png" alt="" />Element <span>Anvil</span></button
+        <img src="/icon.png" alt="" /><span class="ut-brand-name"
+          >Element <span>Anvil</span></span
+        ></button
       ><span id="project-title" class="ut-project-title"></span>
       <div class="ut-header-actions">
         <button
@@ -256,25 +261,30 @@
             title="Показать или скрыть вывод · Ctrl+J"
             aria-label="Показать или скрыть вывод"
           >
-            ▤
+            <svg><use href="#i-output" /></svg>
           </button>
         </div>
-        <div class="ut-editor-toolbar">
-          <span id="breadcrumb-file" class="ut-breadcrumb"></span>
+        <div
+          class="ut-editor-toolbar"
+          role="toolbar"
+          aria-label="Действия редактора"
+        >
           <div class="ut-editor-actions">
             <button
               id="markdown-preview-button"
-              class="ut-secondary ut-hidden"
+              class="ut-icon-button ut-hidden"
               aria-label="Просмотр Markdown"
-            >
-              Просмотр Markdown
-            </button>
-            <span id="save-state" class="ut-save-state"></span
+            ></button>
+            <span
+              id="save-state"
+              class="ut-save-state ut-visually-hidden"
+            ></span
             ><button
               id="save"
               class="ut-icon-button"
               title="Сохранить · Ctrl+S"
               aria-label="Сохранить"
+              aria-describedby="save-state"
             >
               <svg><use href="#i-save" /></svg></button
             ><button
@@ -285,18 +295,24 @@
             >
               <svg><use href="#i-format" /></svg></button
             ><button
+              id="open-terminal"
+              class="ut-icon-button"
+              title="Открыть терминал · Ctrl+`"
+              aria-label="Открыть терминал"
+            ></button
+            ><button
               id="debug-start"
-              class="ut-secondary"
+              class="ut-icon-button"
+              aria-label="Начать или продолжить отладку"
               title="Начать / продолжить отладку · Ctrl+F5"
-            >
-              Отладка</button
+            ></button
             ><button
               id="run"
-              class="ut-primary ut-run-button"
+              class="ut-icon-button"
+              aria-label="Запустить проект"
               title="Запустить · F5"
             >
-              <svg><use href="#i-play" /></svg><span>Запустить</span
-              ><kbd>F5</kbd>
+              <svg><use href="#i-play" /></svg>
             </button>
             <button
               id="run-options"
@@ -507,7 +523,7 @@
       </details>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        Element Anvil <span id="app-version">0.6.0</span>
+        Element Anvil <span id="app-version">0.6.1</span>
       </p>
     </dialog>
     <dialog id="symbol-dialog" class="ut-dialog ut-symbol-dialog">
