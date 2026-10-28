@@ -1,6 +1,6 @@
 {
   "name": "unexplored-editor",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
@@ -16,6 +16,7 @@
     "test:debug": "node scripts/check-element-debug.mjs",
     "test:terminal": "node scripts/check-terminal.mjs",
     "test:appearance": "electron scripts/check-appearance.mjs",
+    "test:hovers": "electron scripts/check-hovers.mjs",
     "fonts": "node scripts/bundle-fonts.mjs",
     "verify:element": "node scripts/verify-element.mjs",
     "prestart": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs && node node_modules/electron/install.js",

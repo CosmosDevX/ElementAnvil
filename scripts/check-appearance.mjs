@@ -3,6 +3,7 @@ import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 await mkdir(".runtime", { recursive: true });
 const folder = await mkdtemp(path.resolve(".runtime/appearance-"));
 app.setPath("userData", path.join(folder, "chromium"));
@@ -12,7 +13,14 @@ let backend, window;
 const errors = [];
 app.whenReady().then(async () => {
   try {
-    backend = await import("../server.mjs");
+    backend = await import(
+      pathToFileURL(
+        path.join(
+          process.argv[2] ? path.resolve(process.argv[2]) : path.resolve("."),
+          "server.mjs",
+        ),
+      ).href
+    );
     await backend.projects.createProject(folder, "sample", "sbsl");
     backend.configureDesktop({ terminal: true });
     const { origin } = await backend.ready;
@@ -54,8 +62,154 @@ app.whenReady().then(async () => {
       () =>
         !document.querySelector("#workbench").classList.contains("ut-hidden"),
     );
+    await until(() => document.querySelectorAll(".ut-file-tab").length === 1);
+    const verifyOverflowWidgets = async () => {
+      const results = await evaluate(async () => {
+        const editors = monaco.editor
+          .getEditors()
+          .filter((editor) => editor.getModel());
+        const results = [];
+        for (const [index, editor] of editors.entries()) {
+          const node = document.createElement("div");
+          node.textContent = "Tooltip above the launch toolbar";
+          node.style.cssText =
+            "width:220px;height:120px;background:#cbd5e1;color:#111;padding:8px;";
+          const widget = {
+            allowEditorOverflow: true,
+            getId: () => "overflow-regression-" + index,
+            getDomNode: () => node,
+            getPosition: () => ({
+              position: { lineNumber: 1, column: 1 },
+              preference: [monaco.editor.ContentWidgetPositionPreference.ABOVE],
+            }),
+          };
+          editor.setScrollTop(0);
+          editor.addContentWidget(widget);
+          editor.layoutContentWidget(widget);
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+          const rect = node.getBoundingClientRect();
+          const toolbar = document
+            .querySelector(".ut-editor-toolbar")
+            .getBoundingClientRect();
+          const y = Math.max(rect.top + 4, toolbar.top + 4);
+          const topmost = document.elementFromPoint(rect.left + 8, y);
+          results.push({
+            outsideClip: node.closest(".ut-editor-pane") === null,
+            overlapsToolbar: y < rect.bottom && y < toolbar.bottom,
+            visible: topmost === node || node.contains(topmost),
+          });
+          editor.removeContentWidget(widget);
+          node.remove();
+        }
+        return results;
+      });
+      for (const result of results)
+        assert.deepEqual(result, {
+          outsideClip: true,
+          overlapsToolbar: true,
+          visible: true,
+        });
+    };
+    await verifyOverflowWidgets();
+    await evaluate(() => document.querySelector("#split-right").click());
+    await verifyOverflowWidgets();
+    assert.equal(
+      await evaluate(() => document.querySelectorAll(".ut-editor-pane").length),
+      2,
+    );
+    assert.equal(
+      await evaluate(() => {
+        const editors = monaco.editor.getEditors().filter((e) => e.getModel());
+        return (
+          editors.length >= 2 && editors[0].getModel() === editors[1].getModel()
+        );
+      }),
+      true,
+    );
+    assert.equal(
+      await evaluate(() => {
+        const editors = monaco.editor.getEditors().filter((e) => e.getModel());
+        const model = editors[0].getModel();
+        const original = model.getValue();
+        editors[1].executeEdits("split-test", [
+          { range: new monaco.Range(1, 1, 1, 1), text: "// shared edit\n" },
+        ]);
+        const shared = editors[0]
+          .getModel()
+          .getValue()
+          .startsWith("// shared edit");
+        model.setValue(original);
+        return shared;
+      }),
+      true,
+    );
+    await evaluate(() =>
+      document.querySelector('[data-explorer-path="README.md"]').click(),
+    );
+    await until(() => document.querySelectorAll(".ut-file-tab").length === 2);
+    assert.equal(
+      await evaluate(() => {
+        const editors = monaco.editor.getEditors().filter((e) => e.getModel());
+        return (
+          new Set(editors.map((e) => e.getModel().uri.toString())).size === 2
+        );
+      }),
+      true,
+    );
+    await evaluate(() => {
+      const tabs = [...document.querySelectorAll(".ut-file-tab")];
+      const dataTransfer = new DataTransfer();
+      tabs[1].dispatchEvent(
+        new DragEvent("dragstart", { dataTransfer, bubbles: true }),
+      );
+      tabs[0].dispatchEvent(
+        new DragEvent("drop", {
+          dataTransfer,
+          bubbles: true,
+          clientX: tabs[0].getBoundingClientRect().left,
+        }),
+      );
+    });
+    assert.equal(
+      await evaluate(() => document.querySelector(".ut-file-tab").title),
+      "README.md",
+    );
+    await evaluate(() => document.querySelector("#split-left").click());
+    assert.equal(
+      await evaluate(() => document.querySelectorAll(".ut-editor-pane").length),
+      3,
+    );
+    await evaluate(() =>
+      document
+        .querySelector('.ut-pane-active [aria-label="Закрыть панель"]')
+        .click(),
+    );
+    assert.equal(
+      await evaluate(() => document.querySelectorAll(".ut-editor-pane").length),
+      2,
+    );
     await evaluate(() => document.querySelector("#settings-button").click());
     await until(() => document.querySelector("#settings-dialog").open);
+    await evaluate(() => {
+      const input = document.querySelector("#icon-size");
+      input.value = "120";
+      input.dispatchEvent(new Event("input"));
+    });
+    assert.equal(
+      await evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--icon-scale")
+          .trim(),
+      ),
+      "1.2",
+    );
+    await evaluate(() => {
+      const input = document.querySelector("#icon-size");
+      input.value = "100";
+      input.dispatchEvent(new Event("input"));
+    });
     assert.equal(
       await evaluate(
         () =>
@@ -183,6 +337,25 @@ app.whenReady().then(async () => {
             .outlineStyle,
       ),
       "none",
+    );
+    await evaluate(() => document.querySelector("#run-options").click());
+    await evaluate(() => document.querySelector("#run-file-choice").click());
+    await until(
+      () =>
+        document.querySelector("#settings-save-state").textContent ===
+        "Настройки сохранены",
+    );
+    assert.equal(
+      await evaluate(
+        async () =>
+          (await fetch("/api/session").then((r) => r.json())).settings
+            .launchMode,
+      ),
+      "run-file",
+    );
+    assert.equal(
+      await evaluate(() => document.querySelector("#launch-label").textContent),
+      "Запуск файла",
     );
     await evaluate(() => document.querySelector("#open-terminal").click());
     await until(

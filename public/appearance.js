@@ -15,6 +15,10 @@ export function applyAppearance(monaco, editor, settings) {
   const p = palettes[themeId(settings.theme)],
     font = fonts.find((item) => item.id === settings.font) || fonts[0];
   document.documentElement.dataset.theme = themeId(settings.theme);
+  document.documentElement.style.setProperty(
+    "--icon-scale",
+    String((settings.iconSize || 100) / 100),
+  );
   document.documentElement.style.colorScheme = p.light ? "light" : "dark";
   const variables = {
     bg: p.shell,

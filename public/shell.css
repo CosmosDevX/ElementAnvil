@@ -529,6 +529,135 @@ svg {
   position: absolute;
   inset: 0;
 }
+.ut-editor-groups {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: auto;
+}
+.ut-editor-overlays.monaco-editor,
+.ut-workbench-overlays.monaco-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  background: transparent;
+}
+.ut-workbench-overlays.monaco-editor {
+  z-index: 90;
+}
+.ut-workbench-overlays > .context-view {
+  pointer-events: auto;
+}
+.ut-editor-overlays .overflowingContentWidgets > *,
+.ut-editor-overlays .overflowingOverlayWidgets > * {
+  pointer-events: auto;
+}
+.ut-editor-pane {
+  flex: 1 1 0;
+  min-width: 240px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.ut-editor-pane > #editor,
+.ut-pane-editor {
+  position: relative;
+  inset: auto;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+.ut-pane-header {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  flex-shrink: 0;
+  background: var(--panel);
+  padding: 2px 5px;
+  border-bottom: 2px solid transparent;
+}
+.ut-multiple-editors .ut-pane-header {
+  display: flex;
+}
+.ut-pane-active .ut-pane-header {
+  border-bottom-color: var(--accent);
+}
+.ut-pane-header select {
+  min-width: 0;
+  flex: 1;
+  background: var(--panel);
+  border: 0;
+  font-size: 11px;
+}
+.ut-pane-header button {
+  padding: 3px;
+}
+.ut-tab-drop {
+  box-shadow: inset 3px 0 var(--accent);
+}
+.ut-preview-mode .ut-editor-groups {
+  visibility: hidden;
+}
+.ut-run-options-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+.ut-editor-actions #run {
+  width: auto;
+  height: 34px;
+  border-radius: 5px 0 0 5px;
+}
+.ut-editor-actions #run-options {
+  border-radius: 0 5px 5px 0;
+  padding: 0 9px;
+  border-left: 0;
+}
+.ut-generated-icon {
+  zoom: var(--icon-scale, 1);
+}
+.ut-editor-actions > .ut-icon-button {
+  width: calc(38px * var(--icon-scale, 1));
+  height: calc(38px * var(--icon-scale, 1));
+}
+.ut-debug-toolbar {
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.ut-debug-toolbar .ut-tool-button {
+  width: calc(25px * var(--icon-scale, 1));
+  height: calc(25px * var(--icon-scale, 1));
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+.ut-debug-toolbar .ut-generated-icon {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
+  transform: none;
+}
+.ut-terminal-toolbar {
+  min-height: calc(42px * max(1, var(--icon-scale, 1)));
+}
+.ut-terminal-host,
+.ut-terminal-instance,
+.ut-terminal .xterm-viewport,
+.ut-terminal .xterm-screen {
+  background: var(--editor) !important;
+}
+.ut-terminal .xterm-screen {
+  contain: paint;
+}
 #haunting {
   position: absolute;
   inset: 0;

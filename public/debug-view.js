@@ -29,8 +29,18 @@ export class DebugView {
       ["stop", "■", "Завершить отладку · Shift+F5"],
     ]) {
       const node = button(label, () => this.command(command), title);
-      if (command === "continue" || command === "stop")
-        node.replaceChildren(icon(command === "stop" ? "stop" : "run"));
+      node.replaceChildren(
+        icon(
+          {
+            continue: "run",
+            pause: "pause",
+            next: "step-over",
+            stepIn: "step-in",
+            stepOut: "step-out",
+            stop: "stop",
+          }[command],
+        ),
+      );
       node.setAttribute("aria-label", title);
       this.commands[command] = node;
       this.toolbar.append(node);

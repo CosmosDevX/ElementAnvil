@@ -236,6 +236,8 @@ test("Settings and recent projects survive a fresh application session", async (
   const next = await new ProjectManager(manager.dataDirectory).initialize();
   assert.deepEqual(next.state.settings, {
     theme: "vim",
+    iconSize: 100,
+    launchMode: "run-project",
     iconPalette: "theme",
     font: "press-start-2p",
     fontSize: 18,
@@ -270,6 +272,18 @@ test("Six themes persist and legacy green settings migrate to forest", async (t)
   await assert.rejects(
     manager.createProject(manager.dataDirectory, "unsupported", "zig"),
     /1С:Элемент/,
+  );
+});
+test("icon size and selected launch mode persist and reject invalid values", async (t) => {
+  const { manager } = await fixture(t);
+  await manager.settings({ iconSize: 115, launchMode: "debug-file" });
+  const reopened = await new ProjectManager(manager.dataDirectory).initialize();
+  assert.equal(reopened.state.settings.iconSize, 115);
+  assert.equal(reopened.state.settings.launchMode, "debug-file");
+  assert.equal((await reopened.settings({ iconSize: 999 })).iconSize, 130);
+  assert.equal(
+    (await reopened.settings({ launchMode: "unknown" })).launchMode,
+    "run-project",
   );
 });
 test("Rejected external binary files leave the current project intact", async (t) => {

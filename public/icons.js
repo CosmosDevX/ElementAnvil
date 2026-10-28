@@ -1,6 +1,10 @@
 // Transparent alpha masks use the selected palette across the interface.
 export function icon(name) {
   const monochrome = [
+    "pause",
+    "step-over",
+    "step-in",
+    "step-out",
     "folder",
     "element-file",
     "http",
@@ -74,7 +78,7 @@ export function installIcons() {
   ])
     document.querySelector(selector).replaceChildren(icon(name));
   const run = document.querySelector("#run");
-  run.querySelector("svg").replaceWith(icon("run"));
+
   for (const node of document.querySelectorAll(
     'svg:has(use[href="#i-folder"])',
   ))

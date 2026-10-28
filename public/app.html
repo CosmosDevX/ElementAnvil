@@ -264,7 +264,29 @@
           aria-label="Действия редактора"
         >
           <div class="ut-editor-actions">
+            <button
+              id="split-left"
+              class="ut-icon-button"
+              title="Разделить редактор влево"
+              aria-label="Разделить редактор влево"
+            >
+              ◧</button
+            ><button
+              id="split-right"
+              class="ut-icon-button"
+              title="Разделить редактор вправо"
+              aria-label="Разделить редактор вправо"
+            >
+              ◨
+            </button>
             <div class="ut-run-options-group">
+              <button
+                id="run"
+                class="ut-run-options-button"
+                title="Выполнить выбранный режим"
+              >
+                <span id="launch-label">Запуск проекта</span>
+              </button>
               <button
                 id="run-options"
                 class="ut-run-options-button"
@@ -274,7 +296,7 @@
                 aria-controls="run-menu"
                 aria-expanded="false"
               >
-                Запуск и отладка <span aria-hidden="true">▾</span>
+                <span aria-hidden="true">▾</span>
               </button>
               <div
                 id="run-menu"
@@ -331,15 +353,7 @@
               class="ut-icon-button"
               aria-label="Начать или продолжить отладку"
               title="Начать / продолжить отладку · Ctrl+F5"
-            ></button
-            ><button
-              id="run"
-              class="ut-icon-button"
-              aria-label="Запустить проект"
-              title="Запустить · F5"
-            >
-              <svg><use href="#i-play" /></svg>
-            </button>
+            ></button>
           </div>
         </div>
         <div id="editor-wrap" class="ut-editor-wrap">
@@ -516,6 +530,17 @@
           «По теме» автоматически подбирает набор. Любую палитру можно выбрать
           вручную.
         </p>
+        <label class="ut-setting-label" for="icon-size">Размер иконок</label>
+        <div class="ut-size-row">
+          <input
+            id="icon-size"
+            type="range"
+            min="70"
+            max="130"
+            step="5"
+            value="100"
+          /><output id="icon-size-value">100%</output>
+        </div>
         <label class="ut-setting-label" for="font-select">Шрифт редактора</label
         ><select id="font-select"></select>
         <div class="ut-font-preview" id="font-preview">
@@ -584,7 +609,7 @@
       </section>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        Element Anvil <span id="app-version">0.6.4</span>
+        Element Anvil <span id="app-version">0.7.0</span>
       </p>
     </dialog>
     <dialog id="symbol-dialog" class="ut-dialog ut-symbol-dialog">

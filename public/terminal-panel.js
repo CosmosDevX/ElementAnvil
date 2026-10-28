@@ -51,7 +51,8 @@ export class TerminalPanel {
     return this.sessions.get(this.active);
   }
   reset() {
-    clearTimeout(this.fitTimer);
+    cancelAnimationFrame(this.fitTimer);
+    this.fitTimer = null;
     for (const session of this.sessions.values()) {
       clearTimeout(session.flushTimer);
       session.terminal.dispose();
@@ -232,8 +233,11 @@ export class TerminalPanel {
     if (changed) this.ctx.updateStatus();
   }
   fit() {
-    clearTimeout(this.fitTimer);
-    this.fitTimer = setTimeout(() => this.fitNow(), 60);
+    if (this.fitTimer) return;
+    this.fitTimer = requestAnimationFrame(() => {
+      this.fitTimer = null;
+      this.fitNow();
+    });
   }
   fitNow() {
     const session = this.current();
@@ -253,6 +257,7 @@ export class TerminalPanel {
       if (key === session.size) return;
       session.size = key;
       session.terminal.resize(cols, rows);
+      session.terminal.refresh(0, rows - 1);
       // Keep geometry changes and keystrokes ordered for ConPTY/PSReadLine.
       session.queue = session.queue
         .then(() => this.call(session, "resize", { cols, rows }))

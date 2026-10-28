@@ -110,3 +110,16 @@ button:disabled > .ut-generated-icon {
   gap: 12px;
   padding: 12px 0 0;
 }
+.ut-editor-actions #run.ut-run-options-button {
+  width: auto;
+  min-width: 160px;
+  height: 34px;
+  border-radius: 5px 0 0 5px;
+}
+#split-left,
+#split-right {
+  font-size: 20px;
+}
+.ut-pane-header button {
+  font-size: 16px;
+}

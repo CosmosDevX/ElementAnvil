@@ -1,4 +1,6 @@
 import { themes } from "./themes.js";
+import { EditorGroups } from "./editor-groups.js";
+import { createCodeEditor } from "./editor-overlays.js";
 import { iconPalettes, iconPaletteId } from "./icon-palettes.js";
 import { WorkspaceViews } from "./workspace-views.js";
 import { diskAction, replaceDocumentText } from "./document-sync.js";
@@ -39,6 +41,7 @@ const diskTexts = new WeakMap();
 const diskGuards = new WeakMap();
 const modelWrites = new WeakMap();
 const deletingFiles = new Set();
+let groups, draggedTab;
 let silentModelChange = false;
 let session,
   editor,
@@ -658,6 +661,7 @@ async function projectAction(endpoint, data = {}) {
       anomalies.end();
       for (const timeout of saves.values()) clearTimeout(timeout);
       saves.clear();
+      groups?.reset();
       for (const model of models.values()) model.dispose();
       models.clear();
       views.clear();
@@ -761,6 +765,7 @@ async function openFile(name, provided) {
   refreshDiagnostics();
 }
 function renderTabs() {
+  groups?.refresh();
   const tabs = $("tabs");
   tabs.replaceChildren();
   for (const [name] of models) {
@@ -770,6 +775,42 @@ function renderTabs() {
     tab.setAttribute("aria-selected", String(name === currentName));
     tab.tabIndex = 0;
     tab.title = name;
+    tab.draggable = true;
+    tab.ondragstart = (event) => {
+      draggedTab = name;
+      event.dataTransfer.setData("application/x-anvil-tab", name);
+      event.dataTransfer.effectAllowed = "move";
+    };
+    tab.ondragover = (event) => {
+      if (draggedTab && draggedTab !== name) {
+        event.preventDefault();
+        tab.classList.add("ut-tab-drop");
+      }
+    };
+    tab.ondragleave = () => tab.classList.remove("ut-tab-drop");
+    tab.ondragend = () => {
+      draggedTab = null;
+      for (const node of tabs.children) node.classList.remove("ut-tab-drop");
+    };
+    tab.ondrop = (event) => {
+      const source = event.dataTransfer.getData("application/x-anvil-tab");
+      if (!models.has(source) || source === name) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const entries = [...models];
+      const moving = entries.splice(
+        entries.findIndex(([key]) => key === source),
+        1,
+      )[0];
+      const index = entries.findIndex(([key]) => key === name);
+      const after =
+        event.clientX > tab.getBoundingClientRect().left + tab.offsetWidth / 2;
+      entries.splice(index + (after ? 1 : 0), 0, moving);
+      models.clear();
+      for (const [key, model] of entries) models.set(key, model);
+      draggedTab = null;
+      renderTabs();
+    };
     const label = document.createElement("span");
     label.className = "ut-tab-label";
     label.textContent = basename(name);
@@ -825,6 +866,8 @@ async function closeFile(name, discard = false) {
   if (serviceAvailable(model.getLanguageId()))
     await assist(model, "close").catch(() => {});
   models.delete(name);
+  for (const group of groups?.groups || [])
+    if (group.editor.getModel() === model) group.editor.setModel(null);
   problems.delete(name);
   diagnosticErrors.delete(name);
   views.delete(name);
@@ -911,11 +954,20 @@ function updateStatus() {
     devtools?.debug.active ||
     (consolePanel === "terminal" && terminalPanel?.current()?.alive)
   );
+  const launchMode = session.settings.launchMode || "run-project";
+  if (launchMode.startsWith("debug"))
+    $("run").disabled = $("debug-start").disabled || devtools?.debug.active;
+  if (launchMode.endsWith("file") && lang !== "sbsl") $("run").disabled = true;
+  $("run").title =
+    `${$("launch-label").textContent}: ${launchMode.endsWith("file") ? currentName || "файл не выбран" : target || "проект не выбран"}`;
+  for (const group of groups?.groups || [])
+    group.editor.updateOptions({ readOnly: !!devtools?.debug.active });
 }
 async function reloadProjectFiles() {
   const previous = currentName;
   for (const timer of saves.values()) clearTimeout(timer);
   saves.clear();
+  groups?.reset();
   for (const model of models.values()) model.dispose();
   models.clear();
   views.clear();
@@ -1163,7 +1215,31 @@ function newEntry(kind) {
   $("create-entry-dialog").showModal();
   $("entry-name").focus();
 }
+function updateLaunchLabel() {
+  for (const mode of [
+    "run-project",
+    "run-file",
+    "debug-project",
+    "debug-file",
+  ]) {
+    const node = $(mode + "-choice");
+    node.setAttribute("role", "menuitemradio");
+    node.setAttribute(
+      "aria-checked",
+      String(mode === (session.settings.launchMode || "run-project")),
+    );
+  }
+  $("launch-label").textContent = {
+    "run-project": "Запуск проекта",
+    "run-file": "Запуск файла",
+    "debug-project": "Отладка проекта",
+    "debug-file": "Отладка файла",
+  }[session.settings.launchMode || "run-project"];
+}
 function renderSettings() {
+  updateLaunchLabel();
+  $("icon-size").value = session.settings.iconSize || 100;
+  $("icon-size-value").textContent = `${session.settings.iconSize || 100}%`;
   for (const [id, command, label] of [
     ["project-symbols", "searchProject", "Поиск по проекту"],
     ["save", "save", "Сохранить"],
@@ -1203,7 +1279,8 @@ function renderSettings() {
 }
 function settings(patch) {
   session.settings = { ...session.settings, ...patch };
-  applyAppearance(monaco, editor, session.settings);
+  for (const group of groups?.groups || [{ editor }])
+    applyAppearance(monaco, group.editor, session.settings);
   renderSettings();
   updateStatus();
   if (Object.hasOwn(patch, "autoSave")) {
@@ -1288,7 +1365,15 @@ function bind() {
   $("save").onclick = () => save().catch(report);
   $("format").onclick = () =>
     editor.getAction("editor.action.formatDocument").run();
-  $("run").onclick = () => run();
+  $("split-left").onclick = () => groups.split("left");
+  $("split-right").onclick = () => groups.split("right");
+  $("run").onclick = () => {
+    const mode = session.settings.launchMode || "run-project";
+    (mode.startsWith("debug")
+      ? devtools.debug.start(mode.endsWith("file") ? currentName : undefined)
+      : run(mode.endsWith("file") ? currentName : undefined)
+    )?.catch(report);
+  };
   const toggleRunMenu = (open) => {
     $("run-menu").classList.toggle("ut-hidden", !open);
     $("run-options").setAttribute("aria-expanded", String(open));
@@ -1332,10 +1417,8 @@ function bind() {
   ])
     $(id).onclick = () => {
       toggleRunMenu(false);
-      if (id === "run-project-choice") run();
-      else if (id === "run-file-choice") run(currentName);
-      else if (id === "debug-file-choice") devtools.debug.start(currentName);
-      else devtools.debug.start();
+      settings({ launchMode: id.replace("-choice", "") });
+      updateStatus();
     };
   document.addEventListener("pointerdown", (event) => {
     if (!event.target.closest("#run-options,#run-menu")) toggleRunMenu(false);
@@ -1400,6 +1483,8 @@ function bind() {
     settings({ iconPalette: $("icon-palette").value });
   $("font-size").oninput = () =>
     settings({ fontSize: Number($("font-size").value) });
+  $("icon-size").oninput = () =>
+    settings({ iconSize: Number($("icon-size").value) });
   $("anomalies").onchange = () =>
     settings({ anomalies: $("anomalies").checked });
   $("minimap").onchange = () => settings({ minimap: $("minimap").checked });
@@ -1478,14 +1563,12 @@ async function initialize() {
   await new Promise((resolve, reject) =>
     window.require(["vs/editor/editor.main"], resolve, reject),
   );
-  registerLanguages(monaco);
-  registerElementSymbols(monaco);
-  setupProviders(monaco, {
-    assist,
-    serviceAvailable,
-    event: (message) => console.debug(message),
-  });
-  editor = monaco.editor.create($("editor"), {
+  window.MonacoEnvironment.getWorker = (_module, label) =>
+    new Worker(`/monaco-worker.js?label=${encodeURIComponent(label)}`, {
+      name: label,
+    });
+  // Install Monaco's window overlay service before language APIs initialize its services.
+  editor = createCodeEditor($("editor"), {
     automaticLayout: true,
     fontSize: 14,
     lineHeight: 25,
@@ -1505,6 +1588,39 @@ async function initialize() {
     suggest: { showWords: false },
     wordBasedSuggestions: "off",
     scrollbar: { verticalScrollbarSize: 7, horizontalScrollbarSize: 7 },
+  });
+  const primaryEditor = editor;
+  registerLanguages(monaco);
+  registerElementSymbols(monaco);
+  setupProviders(monaco, {
+    assist,
+    serviceAvailable,
+    event: (message) => console.debug(message),
+  });
+  const wiredEditors = new WeakSet([editor]);
+  groups = new EditorGroups(editor, models, (focused, name) => {
+    editor = focused;
+    currentName = name;
+    if (!wiredEditors.has(focused)) {
+      wiredEditors.add(focused);
+      selectionMatches(focused, monaco);
+      focused.onDidChangeCursorPosition(updateStatus);
+      focused.onMouseDown((event) => {
+        if (
+          event.target.type ===
+            monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN &&
+          event.target.position
+        )
+          devtools.debug.toggle(event.target.position.lineNumber);
+      });
+    }
+    renderTabs();
+    updateStatus();
+    renderProblems();
+    if (devtools) {
+      devtools.debug.decorate();
+      devtools.debug.highlight();
+    }
   });
   selectionMatches(editor, monaco);
   projectSearch = new ProjectSearch({
@@ -1526,7 +1642,9 @@ async function initialize() {
     report,
   });
   fulltextSearch = new FullTextSearch({
-    editor,
+    get editor() {
+      return editor;
+    },
     api,
     report,
     project: () => session.project,
@@ -1683,10 +1801,11 @@ async function initialize() {
     "stop",
   ])
     $("icon-preview").append(icon(name));
-  applyAppearance(monaco, editor, session.settings);
+  for (const group of groups?.groups || [{ editor }])
+    applyAppearance(monaco, group.editor, session.settings);
   new ElementOutline(editor, $("element-outline"));
   markdownPreview = new MarkdownPreview(
-    editor,
+    primaryEditor,
     $("markdown-preview"),
     $("markdown-preview-button"),
     async (href, image) => {
@@ -1709,7 +1828,7 @@ async function initialize() {
     report,
   );
   anomalies = new Anomalies(
-    editor,
+    primaryEditor,
     monaco,
     $("haunting"),
     () =>
@@ -1762,12 +1881,16 @@ async function initialize() {
     label: "Element Anvil: аномалия",
     run: () => anomalies.trigger(),
   });
-  panels = new PanelLayout(editor, session.layout, (layout) =>
-    api("layout", layout).catch(report),
+  panels = new PanelLayout(
+    { layout: () => editor.layout() },
+    session.layout,
+    (layout) => api("layout", layout).catch(report),
   );
-  workspaceViews = new WorkspaceViews(editor);
+  workspaceViews = new WorkspaceViews({ layout: () => editor.layout() });
   devtools = new DevTools({
-    editor,
+    get editor() {
+      return editor;
+    },
     api,
     project: () => session.project,
     currentName: () => currentName,
