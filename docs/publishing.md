@@ -1,5 +1,7 @@
 # Подготовка публичного выпуска
 
+Текущий кандидат — 0.6.4. Перед любым изменением видимости, topics, тегов и релизов требуется явное подтверждение владельца: [план публикации](publication-plan.md).
+
 Собственный код Element Anvil распространяется по MIT. Эта лицензия разрешает использование, модификацию и распространение, в том числе коммерческое, при сохранении уведомлений. Она не распространяется на чужие компоненты и не заменяет соглашение 1С.
 
 ## Перед сменой видимости
@@ -12,13 +14,13 @@
 ## Публикация на GitHub
 
 1. Когда предыдущие вопросы проверены, в Settings → General → Danger Zone → Change repository visibility выберите Public. Это открывает исходники и историю; сделать это должен владелец с соответствующими правами.
-2. Создайте GitHub Release с тегом `v0.6.3` на коммите версии 0.6.3. Сначала можно сохранить Draft.
-3. Скопируйте описание из docs/releases/0.6.3.md. Прикрепите три файла из release: Portable.exe, Setup.exe и SHA256SUMS.txt. Сборки больше 100 МБ, поэтому их нужно прикреплять к Release, а не коммитить в Git.
+2. Создайте GitHub Release с тегом `v0.6.4` на коммите версии 0.6.4. Сначала можно сохранить Draft.
+3. Скопируйте описание из docs/releases/0.6.4.md. Прикрепите три файла из release: Portable.exe, Setup.exe и SHA256SUMS.txt. Сборки больше 100 МБ, поэтому их нужно прикреплять к Release, а не коммитить в Git.
 4. При желании приложите LICENSE и THIRD_PARTY_NOTICES.md. Они также включены в приложение. Не загружайте builder-debug.yml, win-unpacked, .runtime, рабочие проекты и дистрибутивы 1С/Java.
 5. Добавьте скриншот, описание и темы репозитория. После публикации проверьте скачивание и запуск обоих вариантов на чистой Windows.
 
-Контрольная сумма скачанного файла: `Get-FileHash .\ElementAnvil-0.6.3-Setup.exe -Algorithm SHA256`. Сравните результат с SHA256SUMS.txt из того же релиза.
+Контрольная сумма скачанного файла: `Get-FileHash .\ElementAnvil-0.6.4-Setup.exe -Algorithm SHA256`. Сравните результат с SHA256SUMS.txt из того же релиза.
 
-Видимость репозитория не менялась, GitHub Release не публиковался. Результаты проверки исходников, истории, зависимостей и обновлённой локальной сборки от 28 октября 2026 года приведены в [publication-audit.md](publication-audit.md). Кандидаты находятся отдельно в `release/candidate-0.6.3/`; прежние файлы `release/` не заменялись.
+Видимость репозитория не менялась, GitHub Release не публиковался. Результаты проверки исходников, истории, зависимостей и обновлённой локальной сборки от 28 октября 2026 года приведены в [publication-audit.md](publication-audit.md). Кандидаты находятся отдельно в `release/v0.6.4/`; прежние файлы `release/` не заменялись.
 
 Официальные справки: [лицензия репозитория](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository), [MIT](https://choosealicense.com/licenses/mit/), [создание релизов](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).

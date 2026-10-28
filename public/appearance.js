@@ -28,8 +28,10 @@ export function applyAppearance(monaco, editor, settings) {
     "accent-bg": p.accentBg,
     hover: p.line,
     selection: p.selection,
-    "icon-color": iconColors(settings.iconPalette, p.light).color,
-    "icon-danger": iconColors(settings.iconPalette, p.light).danger,
+    "icon-color": iconColors(settings.iconPalette, p.light, settings.theme)
+      .color,
+    "icon-danger": iconColors(settings.iconPalette, p.light, settings.theme)
+      .danger,
   };
   for (const [name, value] of Object.entries(variables))
     document.documentElement.style.setProperty("--" + name, value);

@@ -456,8 +456,30 @@ svg {
 .ut-editor-actions #open-terminal {
   margin-right: 5px;
 }
-.ut-editor-actions #run-options {
-  width: 20px;
+.ut-run-options-group {
+  position: relative;
+  margin-right: 8px;
+}
+.ut-run-options-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--raised);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ut-run-options-button:hover,
+.ut-run-options-button[aria-expanded="true"] {
+  background: var(--hover);
+  border-color: var(--accent);
+}
+.ut-run-options-group .ut-run-menu {
+  left: 0;
+  right: auto;
 }
 .ut-visually-hidden {
   position: absolute;

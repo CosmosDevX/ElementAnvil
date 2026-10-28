@@ -236,7 +236,7 @@ test("Settings and recent projects survive a fresh application session", async (
   const next = await new ProjectManager(manager.dataDirectory).initialize();
   assert.deepEqual(next.state.settings, {
     theme: "vim",
-    iconPalette: "neutral",
+    iconPalette: "theme",
     font: "press-start-2p",
     fontSize: 18,
     anomalies: true,

@@ -25,7 +25,9 @@ function luminance(hex) {
 test("every icon palette stays readable on all theme surfaces", () => {
   for (const [theme, colors] of Object.entries(themes))
     for (const palette of Object.keys(iconPalettes))
-      for (const color of Object.values(iconColors(palette, colors.light)))
+      for (const color of Object.values(
+        iconColors(palette, colors.light, theme),
+      ))
         for (const surface of [
           colors.bg,
           colors.panel,
@@ -41,7 +43,7 @@ test("every icon palette stays readable on all theme surfaces", () => {
           );
         }
 });
-test("icon choices persist across restarts and old/invalid settings use neutral", async (t) => {
+test("icon choices persist across restarts and old/invalid settings follow the theme", async (t) => {
   const base = path.resolve(".runtime");
   await mkdir(base, { recursive: true });
   const folder = await mkdtemp(path.join(base, "palette-test-"));
@@ -50,15 +52,34 @@ test("icon choices persist across restarts and old/invalid settings use neutral"
     await rm(folder, { recursive: true, force: true });
   });
   const manager = await new ProjectManager(folder).initialize();
-  assert.equal(manager.state.settings.iconPalette, "neutral");
+  assert.equal(manager.state.settings.iconPalette, "theme");
   for (const iconPalette of Object.keys(iconPalettes)) {
     await manager.settings({ iconPalette });
     const reopened = await new ProjectManager(folder).initialize();
     assert.equal(reopened.state.settings.iconPalette, iconPalette);
   }
-  assert.equal(iconPaletteId("__proto__"), "neutral");
+  assert.equal(iconPaletteId("__proto__"), "theme");
   assert.equal(
     (await manager.settings({ iconPalette: "invalid" })).iconPalette,
-    "neutral",
+    "theme",
+  );
+});
+test("automatic packs match every theme and explicit overrides remain independent", () => {
+  for (const [theme, palette] of Object.entries({
+    dark: "neutral",
+    amber: "amber",
+    forest: "forest",
+    vim: "vim",
+    ocean: "ocean",
+    enterprise: "enterprise",
+  })) {
+    assert.equal(
+      iconColors("theme", themes[theme].light, theme).color,
+      iconColors(palette, themes[theme].light).color,
+    );
+  }
+  assert.equal(
+    iconColors("neutral", false, "amber").color,
+    iconPalettes.neutral.dark,
   );
 });

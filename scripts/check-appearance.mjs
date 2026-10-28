@@ -31,7 +31,7 @@ app.whenReady().then(async () => {
     });
     window.webContents.session.webRequest.onCompleted((details) => {
       if (details.statusCode >= 400)
-        console.log("HTTP failure", details.statusCode, details.url);
+        errors.push(`HTTP ${details.statusCode}: ${details.url}`);
     });
     await window.loadURL(origin);
     window.showInactive();
@@ -97,7 +97,18 @@ app.whenReady().then(async () => {
       await window.webContents.executeJavaScript(
         `document.querySelector('[data-theme-choice="${theme}"]').click()`,
       );
-      for (const palette of ["neutral", "cyan", "mint", "violet"]) {
+      for (const palette of [
+        "theme",
+        "neutral",
+        "amber",
+        "forest",
+        "vim",
+        "ocean",
+        "enterprise",
+        "cyan",
+        "mint",
+        "violet",
+      ]) {
         await window.webContents.executeJavaScript(
           `document.querySelector('#icon-palette').value='${palette}';document.querySelector('#icon-palette').dispatchEvent(new Event('change'))`,
         );
@@ -110,11 +121,18 @@ app.whenReady().then(async () => {
           ),
           /^rgb/,
         );
+        if (palette === "theme") {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          await writeFile(
+            path.join(folder, `theme-${theme}.png`),
+            (await window.webContents.capturePage()).toPNG(),
+          );
+        }
       }
     }
     await evaluate(() => {
       const select = document.querySelector("#icon-palette");
-      select.value = "neutral";
+      select.value = "theme";
       select.dispatchEvent(new Event("change"));
     });
     await until(
@@ -130,6 +148,34 @@ app.whenReady().then(async () => {
     window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
     window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
     await until(() => !document.querySelector("#settings-dialog").open);
+    await evaluate(() =>
+      document
+        .querySelector("#run-options")
+        .dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+        ),
+    );
+    assert.equal(
+      await evaluate(() =>
+        document.querySelector("#run-options").getAttribute("aria-expanded"),
+      ),
+      "true",
+    );
+    assert.equal(
+      await evaluate(() => document.activeElement.id),
+      "run-project-choice",
+    );
+    await evaluate(() =>
+      document.activeElement.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
+    );
+    assert.equal(
+      await evaluate(() =>
+        document.querySelector("#run-options").getAttribute("aria-expanded"),
+      ),
+      "false",
+    );
     assert.equal(
       await evaluate(
         () =>

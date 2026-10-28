@@ -1289,8 +1289,40 @@ function bind() {
   $("format").onclick = () =>
     editor.getAction("editor.action.formatDocument").run();
   $("run").onclick = () => run();
-  $("run-options").onclick = () => {
-    $("run-menu").classList.toggle("ut-hidden");
+  const toggleRunMenu = (open) => {
+    $("run-menu").classList.toggle("ut-hidden", !open);
+    $("run-options").setAttribute("aria-expanded", String(open));
+  };
+  $("run-options").onclick = () =>
+    toggleRunMenu($("run-menu").classList.contains("ut-hidden"));
+  $("run-options").onkeydown = (event) => {
+    if (event.key !== "ArrowDown") return;
+    event.preventDefault();
+    toggleRunMenu(true);
+    $("run-menu").querySelector("button:not(:disabled)")?.focus();
+  };
+  $("run-menu").onkeydown = (event) => {
+    const items = [...$("run-menu").querySelectorAll("button:not(:disabled)")];
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleRunMenu(false);
+      $("run-options").focus();
+    } else if (
+      ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) &&
+      items.length
+    ) {
+      event.preventDefault();
+      const index = items.indexOf(document.activeElement);
+      items[
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? items.length - 1
+            : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) %
+              items.length
+      ].focus();
+    } else if (event.key === "Tab") toggleRunMenu(false);
   };
   for (const id of [
     "run-project-choice",
@@ -1299,15 +1331,14 @@ function bind() {
     "debug-file-choice",
   ])
     $(id).onclick = () => {
-      $("run-menu").classList.add("ut-hidden");
+      toggleRunMenu(false);
       if (id === "run-project-choice") run();
       else if (id === "run-file-choice") run(currentName);
       else if (id === "debug-file-choice") devtools.debug.start(currentName);
       else devtools.debug.start();
     };
   document.addEventListener("pointerdown", (event) => {
-    if (!event.target.closest("#run-options,#run-menu"))
-      $("run-menu").classList.add("ut-hidden");
+    if (!event.target.closest("#run-options,#run-menu")) toggleRunMenu(false);
   });
   $("debug-start").onclick = () => devtools.debug.start();
   $("stop").onclick = () => stopProgram().catch(report);

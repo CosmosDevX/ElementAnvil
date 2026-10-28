@@ -60,9 +60,9 @@ async function stopped(after = 0) {
   throw Error("No stopped event");
 }
 try {
-  assert.equal(session.version, "0.6.3");
+  assert.equal(session.version, "0.6.4");
   assert.ok(session.elementDebug);
-  console.log("PASS: packaged version 0.6.3 and native debugger discovery");
+  console.log("PASS: packaged version 0.6.4 and native debugger discovery");
   for (const icon of [
     "folder",
     "element-file",
@@ -96,7 +96,7 @@ try {
     /git-diff-dialog|⌕ Символы/,
   );
   console.log("PASS: generated icon assets and integrated Git diff workspace");
-  assert.equal(session.settings.iconPalette, "neutral");
+  assert.equal(session.settings.iconPalette, "theme");
   for (const iconPalette of ["cyan", "mint", "violet", "neutral"]) {
     assert.equal(
       (await post("settings", { iconPalette })).settings.iconPalette,

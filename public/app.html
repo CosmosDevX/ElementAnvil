@@ -264,6 +264,38 @@
           aria-label="Действия редактора"
         >
           <div class="ut-editor-actions">
+            <div class="ut-run-options-group">
+              <button
+                id="run-options"
+                class="ut-run-options-button"
+                title="Запуск и отладка проекта или текущего файла"
+                aria-label="Запуск и отладка"
+                aria-haspopup="menu"
+                aria-controls="run-menu"
+                aria-expanded="false"
+              >
+                Запуск и отладка <span aria-hidden="true">▾</span>
+              </button>
+              <div
+                id="run-menu"
+                class="ut-run-menu ut-hidden"
+                role="menu"
+                aria-label="Выбор запуска"
+              >
+                <button id="run-project-choice" role="menuitem">
+                  Запустить проект · F5
+                </button>
+                <button id="run-file-choice" role="menuitem">
+                  Запустить текущий .sbsl
+                </button>
+                <button id="debug-project-choice" role="menuitem">
+                  Отладить проект · Ctrl+F5
+                </button>
+                <button id="debug-file-choice" role="menuitem">
+                  Отладить текущий .sbsl
+                </button>
+              </div>
+            </div>
             <button
               id="markdown-preview-button"
               class="ut-icon-button ut-hidden"
@@ -308,33 +340,6 @@
             >
               <svg><use href="#i-play" /></svg>
             </button>
-            <button
-              id="run-options"
-              class="ut-icon-button"
-              title="Выбрать файл для запуска"
-              aria-label="Варианты запуска"
-            >
-              ▾
-            </button>
-            <div
-              id="run-menu"
-              class="ut-run-menu ut-hidden"
-              role="menu"
-              aria-label="Выбор запуска"
-            >
-              <button id="run-project-choice" role="menuitem">
-                Запустить проект · F5
-              </button>
-              <button id="run-file-choice" role="menuitem">
-                Запустить текущий .sbsl
-              </button>
-              <button id="debug-project-choice" role="menuitem">
-                Отладить проект · Ctrl+F5
-              </button>
-              <button id="debug-file-choice" role="menuitem">
-                Отладить текущий .sbsl
-              </button>
-            </div>
           </div>
         </div>
         <div id="editor-wrap" class="ut-editor-wrap">
@@ -508,7 +513,8 @@
         <select id="icon-palette" aria-describedby="icon-palette-hint"></select>
         <div id="icon-preview" class="ut-icon-preview" aria-hidden="true"></div>
         <p id="icon-palette-hint" class="ut-console-subtle">
-          Прозрачные иконки; оттенок адаптируется к светлой и тёмным темам.
+          «По теме» автоматически подбирает набор. Любую палитру можно выбрать
+          вручную.
         </p>
         <label class="ut-setting-label" for="font-select">Шрифт редактора</label
         ><select id="font-select"></select>
@@ -578,7 +584,7 @@
       </section>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
-        Element Anvil <span id="app-version">0.6.3</span>
+        Element Anvil <span id="app-version">0.6.4</span>
       </p>
     </dialog>
     <dialog id="symbol-dialog" class="ut-dialog ut-symbol-dialog">
