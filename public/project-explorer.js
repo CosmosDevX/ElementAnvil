@@ -1,4 +1,4 @@
-import { icon as generatedIcon } from "./icons.js";
+import { icon as generatedIcon, fileIconName } from "./icons.js";
 const $ = (id) => document.getElementById(id);
 export function createExplorer(ctx) {
   let focusInCode = false;
@@ -8,7 +8,6 @@ export function createExplorer(ctx) {
     api,
     projectData,
     fileActions,
-    languageOf,
     openFile,
     report,
   } = ctx;
@@ -51,12 +50,11 @@ export function createExplorer(ctx) {
               ? "▾"
               : "▸"
             : "";
-        const icon =
-          item.kind === "directory" || languageOf(item.path) === "sbsl"
-            ? generatedIcon(
-                item.kind === "directory" ? "folder" : "element-file",
-              )
-            : document.createElement("span");
+        const iconName =
+          item.kind === "directory" ? "folder" : fileIconName(item.path);
+        const icon = iconName
+          ? generatedIcon(iconName)
+          : document.createElement("span");
         if (!icon.classList.contains("ut-generated-icon")) {
           icon.className = "ut-tree-file-mark";
           icon.textContent = "·";

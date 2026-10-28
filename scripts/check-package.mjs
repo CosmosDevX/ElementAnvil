@@ -60,9 +60,9 @@ async function stopped(after = 0) {
   throw Error("No stopped event");
 }
 try {
-  assert.equal(session.version, "0.6.1");
+  assert.equal(session.version, "0.6.2");
   assert.ok(session.elementDebug);
-  console.log("PASS: packaged version 0.6.1 and native debugger discovery");
+  console.log("PASS: packaged version 0.6.2 and native debugger discovery");
   for (const icon of [
     "folder",
     "element-file",
@@ -79,6 +79,10 @@ try {
     "stop",
     "run",
     "format",
+    "settings",
+    "gitignore",
+    "markdown",
+    "json",
   ]) {
     const response = await fetch(origin + `/icons/${icon}.png`);
     assert.equal(response.status, 200);

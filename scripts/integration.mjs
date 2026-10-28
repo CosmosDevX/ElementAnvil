@@ -43,7 +43,7 @@ async function post(endpoint, data = {}) {
 }
 try {
   assert.equal(session.project, null);
-  assert.equal(session.version, "0.6.1");
+  assert.equal(session.version, "0.6.2");
   const markdownModule = await fetch(`${origin}/markdown/markdown-it.mjs`);
   assert.match(markdownModule.headers.get("content-type"), /text\/javascript/);
   assert.equal(session.settings.anomalies, false);

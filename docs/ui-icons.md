@@ -1,5 +1,97 @@
 # Иконки интерфейса Element Anvil
 
+## Набор 0.6.2
+
+Встроенным ImageGen отдельно созданы 11 PNG с прозрачным фоном. Сохранение, терминал, форматирование, настройки, TODO, Git, отладка и запуск используют более плотные геометрические линии. Для .gitignore, .md и .json добавлены отдельные значки в дереве и вкладках. Все эти изображения используются как CSS-маски цвета #e5bc73. Размер значков панели действий — 30 px, кнопок — 38 px. Ниже точные промпты; более ранние разделы описывают историю набора.
+
+### save.png (0.6.2)
+
+Путь: `public/icons/save.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, save. Subject: a floppy disk save symbol, bold square outline with large top label cutout and large bottom rectangular shutter. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### terminal.png (0.6.2)
+
+Путь: `public/icons/terminal.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, terminal. Subject: a terminal window with thick outer rounded rectangle, large chevron and short underscore. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### format.png (0.6.2)
+
+Путь: `public/icons/format.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, format. Subject: code autoformat: two large curly braces enclosing three aligned horizontal lines, one short line offset to convey indentation. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### settings.png (0.6.2)
+
+Путь: `public/icons/settings.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, settings. Subject: a simple eight-tooth settings gear with a large round hole. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### gitignore.png (0.6.2)
+
+Путь: `public/icons/gitignore.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, gitignore. Subject: a document with folded top right corner and a large minus inside a circle. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### markdown.png (0.6.2)
+
+Путь: `public/icons/markdown.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, markdown. Subject: a document with folded top right corner containing a bold M and a downward arrow. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### json.png (0.6.2)
+
+Путь: `public/icons/json.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, json. Subject: a document with folded top right corner containing large curly braces. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### todo.png (0.6.2)
+
+Путь: `public/icons/todo.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, todo. Subject: two bold checkmarks with two short horizontal task lines. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### git.png (0.6.2)
+
+Путь: `public/icons/git.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, git. Subject: a branching git graph of three large circular nodes connected by thick angular lines. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### debug.png (0.6.2)
+
+Путь: `public/icons/debug.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, debug. Subject: a simple symmetrical debugging beetle with six short legs and solid split body. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
+### run.png (0.6.2)
+
+Путь: `public/icons/run.png`.
+
+```text
+Use case: logo-brand. Asset: one production desktop code-editor toolbar icon, run. Subject: a large right-pointing play triangle with gently rounded corners, solid fill. A single centered glyph only, uniform warm amber #e5bc73 on fully transparent background. Consistent bold geometric icon family: thick confident clean strokes about 3 units on a 24 unit grid, rounded joins, extremely simple, crisp silhouette legible at 24px. Glyph occupies 82 percent of square canvas. Flat monochrome, no gradient, shadow, glow, texture, text labels, border frame or extra decoration. Interior negative spaces genuinely transparent. Bold and neat, never thin or sketchy.
+```
+
 В 0.6.1 встроенным ImageGen отдельно созданы янтарные `public/icons/save.png` и `public/icons/terminal.png` с transparent_background=true. Они используются как CSS-маски вместе с существующим набором. Точные промпты:
 
 ### save.png

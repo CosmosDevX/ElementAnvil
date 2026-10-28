@@ -9,6 +9,15 @@ export function icon(name) {
     "refresh",
     "save",
     "terminal",
+    "format",
+    "settings",
+    "gitignore",
+    "markdown",
+    "json",
+    "todo",
+    "git",
+    "debug",
+    "run",
   ].includes(name);
   const image = document.createElement(monochrome ? "span" : "img");
   image.className = "ut-generated-icon" + (monochrome ? " ut-mono-icon" : "");
@@ -20,6 +29,15 @@ export function icon(name) {
   if (!monochrome) image.width = image.height = 24;
   image.draggable = false;
   return image;
+}
+
+export function fileIconName(path) {
+  const name = path.replaceAll("\\", "/").split("/").pop().toLowerCase();
+  if (name === ".gitignore") return "gitignore";
+  if (name.endsWith(".md")) return "markdown";
+  if (name.endsWith(".json")) return "json";
+  if (name.endsWith(".sbsl")) return "element-file";
+  return null;
 }
 
 export function installIcons() {
@@ -43,6 +61,7 @@ export function installIcons() {
   }
   for (const [selector, name] of [
     ["#save", "save"],
+    ["#settings-button", "settings"],
     ["#open-terminal", "terminal"],
     ["#debug-start", "debug"],
     ["#format", "format"],

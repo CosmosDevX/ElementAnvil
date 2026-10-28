@@ -1,7 +1,7 @@
 import { themes } from "./themes.js";
 import { WorkspaceViews } from "./workspace-views.js";
 import { diskAction, replaceDocumentText } from "./document-sync.js";
-import { installIcons, icon } from "./icons.js";
+import { installIcons, icon, fileIconName } from "./icons.js";
 import { projectFile } from "./document-uri.js";
 import { DevTools } from "./devtools.js";
 import { FileActions } from "./file-actions.js";
@@ -773,7 +773,8 @@ function renderTabs() {
     const label = document.createElement("span");
     label.className = "ut-tab-label";
     label.textContent = basename(name);
-    if (languageOf(name) === "sbsl") tab.append(icon("element-file"));
+    const tabIcon = fileIconName(name);
+    if (tabIcon) tab.append(icon(tabIcon));
     tab.append(label);
     if (dirty.has(name)) {
       const mark = document.createElement("span");

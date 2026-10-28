@@ -18,14 +18,15 @@
   flex-basis: 26px;
 }
 .ut-editor-actions .ut-generated-icon {
-  width: 20px;
-  height: 20px;
-  flex-basis: 20px;
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+  transform: none;
 }
 .ut-editor-actions .ut-mono-icon {
-  width: 22px;
-  height: 22px;
-  flex-basis: 22px;
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
   transform: none;
 }
 .ut-side-tabs {
