@@ -1,4 +1,5 @@
 import { themes } from "./themes.js";
+import { WorkspaceViews } from "./workspace-views.js";
 import { diskAction, replaceDocumentText } from "./document-sync.js";
 import { installIcons, icon } from "./icons.js";
 import { projectFile } from "./document-uri.js";
@@ -39,6 +40,7 @@ let session,
   editor,
   anomalies,
   panels,
+  workspaceViews,
   httpClient,
   markdownPreview,
   devtools,
@@ -207,7 +209,6 @@ async function assist(model, operation, p, extra = {}, token) {
   }
 }
 function showHome() {
-  $("http-workspace").classList.add("ut-hidden");
   document.title = "Element Anvil";
   anomalies?.end();
   $("workbench").classList.add("ut-hidden");
@@ -217,14 +218,13 @@ function showHome() {
   renderRecent();
 }
 function showWorkbench() {
-  $("http-workspace").classList.add("ut-hidden");
   $("home").classList.add("ut-hidden");
   $("workbench").classList.remove("ut-hidden");
-  $("project-title").textContent = session.project.name;
-  $("project-title").title = session.project.root;
+  $("project-title").textContent = session.project?.name || "";
+  $("project-title").title = session.project?.root || "";
   panels?.apply();
   editor.layout();
-  editor.focus();
+  if (!["http", "git"].includes(devtools?.view)) editor.focus();
 }
 function renderRecent() {
   const list = $("recent-list");
@@ -581,7 +581,17 @@ async function projectAction(endpoint, data = {}) {
     await httpClient?.flush();
     if (session.settings.autoSave === false && dirty.size) {
       const answer = await confirmUnsaved([...dirty]);
-      if (answer === "cancel") return;
+      if (answer === "cancel") {
+        if (
+          ["project/open-pending", "project/open-pending-folder"].includes(
+            endpoint,
+          )
+        )
+          await api("desktop/discard", {
+            kind: endpoint.endsWith("folder") ? "folder" : "file",
+          });
+        return;
+      }
       if (answer === "save") await saveAll();
     } else await saveAll();
     const createButton = $("create-project-form").querySelector(
@@ -599,8 +609,10 @@ async function projectAction(endpoint, data = {}) {
       projectSync?.reset();
       externalConflicts.clear();
       terminalPanel?.reset();
+      httpClient?.reset();
       fileActions?.hide();
       devtools?.reset();
+      devtools?.show("files");
       anomalies.end();
       for (const timeout of saves.values()) clearTimeout(timeout);
       saves.clear();
@@ -668,7 +680,7 @@ function createModel(name, text) {
   return model;
 }
 async function openFile(name, provided) {
-  if (devtools?.view === "git") devtools.show("files");
+  if (["git", "http"].includes(devtools?.view)) devtools.show("files");
   if (!models.has(name)) {
     const file =
       provided || (await api("file/read", projectData({ path: name })));
@@ -1124,6 +1136,11 @@ function renderSettings() {
   $("anomalies").checked = session.settings.anomalies;
   $("minimap").checked = session.settings.minimap !== false;
   $("auto-save").checked = session.settings.autoSave !== false;
+  $("show-http-button").checked = session.settings.showHttpButton !== false;
+  $("http-client-button").classList.toggle(
+    "ut-hidden",
+    session.settings.showHttpButton === false,
+  );
   $("test-anomaly").classList.toggle("ut-hidden", !session.settings.anomalies);
   const font = fonts.find((f) => f.id === session.settings.font);
   $("font-preview").style.fontFamily = `'${font.family}',monospace`;
@@ -1157,18 +1174,12 @@ function settings(patch) {
 function bind() {
   $("project-symbols").onclick = () =>
     session.project ? projectSearch.show() : notice("Сначала открой проект.");
-  $("http-client-button").onclick = async () => {
-    try {
-      await httpClient.open();
-      anomalies.end();
-      $("home").classList.add("ut-hidden");
-      $("workbench").classList.add("ut-hidden");
-      $("http-workspace").classList.remove("ut-hidden");
-      httpClient.setProjectRunning(running);
-    } catch (error) {
-      report(error);
-    }
+  const showHttp = () => {
+    showWorkbench();
+    devtools.show("http");
   };
+  $("http-client-button").onclick = showHttp;
+  $("home-http-client").onclick = showHttp;
   for (const id of ["open-project", "home-open-folder"])
     $(id).onclick = () => projectAction("project/open");
   for (const id of ["open-file", "home-open-file"])
@@ -1278,6 +1289,8 @@ function bind() {
   $("minimap").onchange = () => settings({ minimap: $("minimap").checked });
   $("auto-save").onchange = () =>
     settings({ autoSave: $("auto-save").checked });
+  $("show-http-button").onchange = () =>
+    settings({ showHttpButton: $("show-http-button").checked });
   $("file-name-form").onsubmit = (event) => {
     event.preventDefault();
     applyNameAction().catch((error) => {
@@ -1533,6 +1546,7 @@ async function initialize() {
   panels = new PanelLayout(editor, session.layout, (layout) =>
     api("layout", layout).catch(report),
   );
+  workspaceViews = new WorkspaceViews(editor);
   devtools = new DevTools({
     editor,
     api,
@@ -1542,11 +1556,11 @@ async function initialize() {
     saveAll: saveBeforeAction,
     report,
     updateStatus,
-    showGit: (visible) => {
-      $("editor-wrap").classList.toggle("ut-hidden", visible);
-      $("git-workspace").classList.toggle("ut-hidden", !visible);
-      editor.layout();
+    showView: (view) => {
+      workspaceViews.show(view);
+      if (view === "http") anomalies.end();
     },
+    openHttp: () => httpClient.open(),
     reloadFiles: reloadProjectFiles,
     showExplorer: () => {
       if (panels.state.explorerHidden) panels.toggleExplorer();
@@ -1651,7 +1665,7 @@ async function initialize() {
     api,
     project: () => session.project,
     report,
-    close: () => (session.project ? showWorkbench() : showHome()),
+    close: () => devtools.show("files"),
     canRun: () =>
       !!session.project &&
       (!!session.project.entry || languageOf(currentName) === "sbsl"),
@@ -1677,11 +1691,20 @@ async function initialize() {
   }
   if (session.desktop)
     setInterval(async () => {
-      if (projectBusy || running || document.querySelector("dialog[open]"))
+      if (
+        projectBusy ||
+        running ||
+        fileMutation ||
+        devtools.debug.active ||
+        document.querySelector("dialog[open]")
+      )
         return;
       try {
         const events = await fetch("/api/desktop-events").then((r) => r.json());
-        if (events.pendingFile) await projectAction("project/open-pending");
+        if (events.pendingFolder)
+          await projectAction("project/open-pending-folder");
+        else if (events.pendingFile)
+          await projectAction("project/open-pending");
       } catch (error) {
         report(error);
       }

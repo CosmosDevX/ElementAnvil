@@ -282,7 +282,7 @@ svg {
   position: relative;
   width: 27px;
 }
-.ut-tree-tools .ut-icon-button > span {
+.ut-tree-tools .ut-icon-button > span:not(.ut-generated-icon) {
   position: absolute;
   right: 0;
   bottom: 3px;

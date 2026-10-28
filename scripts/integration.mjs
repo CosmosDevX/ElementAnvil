@@ -10,10 +10,17 @@ process.env.UNDERTOW_DATA_DIR = path.join(temporary, "profile");
 process.env.PORT = "0";
 const backend = await import("../server.mjs");
 const { origin } = await backend.ready;
+const pendingFolders = [];
 backend.configureDesktop({
   openFolder: async () => path.join(temporary, "sample"),
   createFolder: async () => temporary,
   openFile: async () => path.join(temporary, "sample", "Скрипт.sbsl"),
+  hasPendingFolder: () => pendingFolders.length > 0,
+  nextFolder: async () => pendingFolders.shift() || null,
+  discardPending: (kind) => {
+    assert.equal(kind, "folder");
+    pendingFolders.shift();
+  },
 });
 const session = await fetch(`${origin}/api/session`).then((r) => r.json());
 let projectId;
@@ -40,11 +47,42 @@ try {
   const markdownModule = await fetch(`${origin}/markdown/markdown-it.mjs`);
   assert.match(markdownModule.headers.get("content-type"), /text\/javascript/);
   assert.equal(session.settings.anomalies, false);
+  assert.equal(session.settings.showHttpButton, true);
   const opened = await post("project/create", {
     name: "sample",
     template: "sbsl",
   });
   projectId = opened.project.id;
+  pendingFolders.push(path.join(temporary, "sample"));
+  assert.equal(
+    (await fetch(`${origin}/api/desktop-events`).then((r) => r.json()))
+      .pendingFolder,
+    true,
+  );
+  const fromExplorer = await post("project/open-pending-folder");
+  assert.equal(fromExplorer.project.root, opened.project.root);
+  projectId = fromExplorer.project.id;
+  pendingFolders.push(path.join(temporary, "cancelled"));
+  assert.equal(
+    (
+      await request(
+        "desktop/discard",
+        { kind: "folder" },
+        { "X-Session-Token": "" },
+      )
+    ).status,
+    403,
+  );
+  assert.equal(pendingFolders.length, 1);
+  await post("desktop/discard", { kind: "folder" });
+  assert.equal(pendingFolders.length, 0);
+  assert.equal(
+    (await request("desktop/discard", { kind: "unknown" })).status,
+    400,
+  );
+  console.log(
+    "PASS: Explorer folder queue, project opening and authenticated cancellation",
+  );
   await mkdir(path.join(opened.project.root, "assets"));
   await copyFile(
     "build/icon.png",
@@ -108,12 +146,14 @@ try {
     font: "press-start-2p",
     fontSize: 16,
     anomalies: true,
+    showHttpButton: false,
   });
   assert.equal(preferences.settings.font, "press-start-2p");
   const restored = await new ProjectManager(
     process.env.UNDERTOW_DATA_DIR,
   ).initialize();
   assert.equal(restored.state.settings.theme, "vim");
+  assert.equal(restored.state.settings.showHttpButton, false);
   console.log("PASS: settings persist independently of window port");
   await post("layout", { explorerWidth: 320, consoleMode: "minimized" });
   const panelState = await new ProjectManager(

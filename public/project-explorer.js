@@ -55,7 +55,7 @@ export function createExplorer(ctx) {
                 item.kind === "directory" ? "folder" : "element-file",
               )
             : document.createElement("span");
-        if (icon.tagName !== "IMG") {
+        if (!icon.classList.contains("ut-generated-icon")) {
           icon.className = "ut-tree-file-mark";
           icon.textContent = "·";
         }

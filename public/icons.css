@@ -1,19 +1,25 @@
 .ut-generated-icon {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   object-fit: contain;
   transform: scale(1.35);
   vertical-align: middle;
   pointer-events: none;
   user-select: none;
 }
-.ut-outline-icon {
-  transform: none;
+.ut-mono-icon {
+  background-color: #e5bc73;
+  mask: var(--icon-image) center / contain no-repeat;
+  transform: scale(1.1);
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
 }
 .ut-side-tabs {
-  height: 54px;
+  height: 62px;
+  overflow-x: auto;
 }
 .ut-side-tabs button {
   display: flex;
@@ -21,20 +27,21 @@
   justify-content: center;
   flex-direction: column;
   gap: 3px;
+  min-width: 46px;
 }
 .ut-text-button,
 .ut-secondary {
   gap: 6px;
 }
 .ut-tree-item > .ut-generated-icon {
-  width: 18px;
-  height: 18px;
-  flex-basis: 18px;
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
 }
 .ut-file-tab > .ut-generated-icon {
-  width: 16px;
-  height: 16px;
-  flex-basis: 16px;
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
 }
 .ut-http-folder > .ut-generated-icon {
   margin-right: 6px;

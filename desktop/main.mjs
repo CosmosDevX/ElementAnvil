@@ -11,26 +11,44 @@ import {
 import { mkdir, readdir, copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
+import { openTargets } from "./open-targets.mjs";
 
 app.setName("Element Anvil");
 // Keep existing preferences and recent projects across the rename.
 app.setPath("userData", path.join(app.getPath("appData"), "Undertow"));
 if (process.env.UNDERTOW_DATA_DIR)
   app.setPath("userData", path.resolve(process.env.UNDERTOW_DATA_DIR));
-const singleInstance = app.requestSingleInstanceLock();
+const startupTargets = openTargets(process.argv.slice(app.isPackaged ? 1 : 2));
+const singleInstance = app.requestSingleInstanceLock({
+  openTargets: startupTargets,
+});
 let window, backend;
 const pendingFiles = [];
+const pendingFolders = [];
 function enqueueFiles(args, cwd = process.cwd()) {
-  for (const value of args) {
-    if (!value.startsWith("-") && /\.sbsl$/i.test(value))
-      pendingFiles.push(path.resolve(cwd, value));
-  }
+  const targets = openTargets(args, cwd);
+  pendingFiles.push(...targets.files);
+  pendingFolders.push(...targets.folders);
 }
-enqueueFiles(process.argv.slice(app.isPackaged ? 1 : 2));
+pendingFiles.push(...startupTargets.files);
+pendingFolders.push(...startupTargets.folders);
 if (!singleInstance) app.quit();
 else {
-  app.on("second-instance", (_event, argv, cwd) => {
-    enqueueFiles(argv.slice(1), cwd);
+  app.on("second-instance", (_event, argv, cwd, data) => {
+    // Chromium may reorder or remove custom switches from the forwarded argv.
+    const targets = data?.openTargets;
+    if (Array.isArray(targets?.files) && Array.isArray(targets?.folders)) {
+      pendingFiles.push(
+        ...targets.files.filter(
+          (value) => typeof value === "string" && path.isAbsolute(value),
+        ),
+      );
+      pendingFolders.push(
+        ...targets.folders.filter(
+          (value) => typeof value === "string" && path.isAbsolute(value),
+        ),
+      );
+    } else enqueueFiles(argv.slice(1), cwd);
     if (window) {
       if (window.isMinimized()) window.restore();
       window.show();
@@ -132,6 +150,10 @@ else {
         openExternal: async (url) => openDocumentation(url),
         hasPendingFile: () => pendingFiles.length > 0,
         nextFile: async () => pendingFiles.shift() || null,
+        hasPendingFolder: () => pendingFolders.length > 0,
+        nextFolder: async () => pendingFolders.shift() || null,
+        discardPending: (kind) =>
+          (kind === "folder" ? pendingFolders : pendingFiles).shift(),
         openFolder: async () => {
           const result = await dialog.showOpenDialog(window, {
             title: "Открыть проект",

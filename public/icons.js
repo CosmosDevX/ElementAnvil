@@ -1,13 +1,20 @@
-// Three outline icons share one grid, stroke and palette; remaining PNGs are
-// original ImageGen assets. Vector icons do not need the bitmap padding scale.
+// Matching ImageGen alpha masks share the exact folder amber in every UI.
 export function icon(name) {
-  const image = document.createElement("img");
-  const vector = ["folder", "element-file", "http"].includes(name);
-  image.src = `/icons/${name}.${vector ? "svg" : "png"}`;
-  image.className = "ut-generated-icon" + (vector ? " ut-outline-icon" : "");
+  const monochrome = [
+    "folder",
+    "element-file",
+    "http",
+    "search",
+    "files",
+  ].includes(name);
+  const image = document.createElement(monochrome ? "span" : "img");
+  image.className = "ut-generated-icon" + (monochrome ? " ut-mono-icon" : "");
+  if (monochrome)
+    image.style.setProperty("--icon-image", `url("/icons/${name}.png")`);
+  else image.src = `/icons/${name}.png`;
   image.alt = "";
   image.setAttribute("aria-hidden", "true");
-  image.width = image.height = 20;
+  if (!monochrome) image.width = image.height = 24;
   image.draggable = false;
   return image;
 }
@@ -20,9 +27,14 @@ export function installIcons() {
     ['[data-side-view="debug"]', "debug"],
     ["#debug-start", "debug"],
     ["#http-client-button", "http"],
+    ["#home-http-client", "http"],
+    ['[data-side-view="http"]', "http"],
+    ["#project-symbols", "search"],
   ]) {
     const node = document.querySelector(selector);
-    if (name === "http") node.textContent = "HTTP";
+    if (name === "http" && selector !== "#home-http-client")
+      node.textContent = "HTTP";
+    if (name === "search") node.textContent = "Искать";
     node.prepend(icon(name));
   }
   for (const [selector, name] of [

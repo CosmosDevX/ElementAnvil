@@ -231,6 +231,7 @@ test("Settings and recent projects survive a fresh application session", async (
     anomalies: true,
     minimap: false,
     autoSave: false,
+    showHttpButton: false,
   });
   const next = await new ProjectManager(manager.dataDirectory).initialize();
   assert.deepEqual(next.state.settings, {
@@ -240,6 +241,7 @@ test("Settings and recent projects survive a fresh application session", async (
     anomalies: true,
     minimap: false,
     autoSave: false,
+    showHttpButton: false,
     keybindings: {},
   });
   assert.equal(next.state.recent[0], project.root);

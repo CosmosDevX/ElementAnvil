@@ -1,25 +1,39 @@
 # Иконки интерфейса Element Anvil
 
-Первоначальный набор создан встроенным ImageGen 27 октября 2026 года; CLI и API-ключ не использовались. Каждый PNG сгенерирован отдельно с transparent_background=true; интерфейс уменьшает его средствами CSS. Иконка приложения не менялась.
+28 октября 2026 года папка, файл Элемента, HTTP-клиент, поиск и вкладка «Файлы» заново сгенерированы встроенным ImageGen отдельно, с transparent_background=true. Оригинальные PNG находятся в public/icons; SVG-предшественники удалены. Иконка приложения не менялась.
 
-По просьбе пользователя папка, файл Элемента и HTTP-клиент заменены единым векторным набором: `public/icons/folder.svg`, `element-file.svg`, `http.svg`. Сетка 24×24, линия 1.7 px, одинаковые скругления и янтарный цвет. PNG этих трёх иконок удалены из сборки. Ниже сохранены первоначальные промпты для истории происхождения растрового набора; остальные восемь PNG используются в интерфейсе.
-
-Полные финальные промпты:
+Интерфейс использует альфа-канал этих пяти PNG как CSS-маску и общий цвет #e5bc73. Это сохраняет сгенерированную форму и одинаковый янтарный оттенок без цветных краёв. Основной размер 26 px, в дереве 24 px и во вкладках 22 px. Семь остальных PNG взяты из набора ImageGen от 27 октября.
 
 ## folder.png
 
-Текущий файл: `public/icons/folder.svg`; первоначальный PNG заменён.
+Путь: `public/icons/folder.png`.
 
 ```text
-Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a simple open file folder, amber outline. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
+Use case: logo-brand. Asset type: one finished toolbar icon for the Element Anvil desktop code editor. Create exactly ONE isolated an open folder with a small top tab and a clean slanted front flap. All visible strokes must be the SAME solid muted amber color #E5BC73, RGB 229 188 115. Genuinely transparent background, including inside all outline shapes. Strictly consistent flat geometric monoline icon style, smooth clean outlines with identical stroke thickness equivalent to 2 pixels on a 24 by 24 grid, rounded caps and rounded joins. No filled panels. The icon silhouette must occupy 78 percent of the square canvas, centered and optically balanced. Readable at 24 to 28 pixels. No letters, words, labels, typography, shadows, gradients, glow, bevel, texture, white strokes, black strokes or decorative particles. This is a member of a matching set of four icons: folder, source file, HTTP globe and search. Preserve the single amber palette and the same stroke weight.
 ```
 
 ## element-file.png
 
-Текущий файл: `public/icons/element-file.svg`; первоначальный PNG заменён.
+Путь: `public/icons/element-file.png`.
 
 ```text
-Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a single document with folded corner containing a geometric amber diamond between two code angle brackets, for a 1C Element source file. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
+Use case: logo-brand. Asset type: one finished toolbar icon for the Element Anvil desktop code editor. Create exactly ONE isolated a document outline with one folded corner and two simple code angle brackets inside. All visible strokes must be the SAME solid muted amber color #E5BC73, RGB 229 188 115. Genuinely transparent background, including inside all outline shapes. Strictly consistent flat geometric monoline icon style, smooth clean outlines with identical stroke thickness equivalent to 2 pixels on a 24 by 24 grid, rounded caps and rounded joins. No filled panels. The icon silhouette must occupy 78 percent of the square canvas, centered and optically balanced. Readable at 24 to 28 pixels. No letters, words, labels, typography, shadows, gradients, glow, bevel, texture, white strokes, black strokes or decorative particles. This is a member of a matching set of four icons: folder, source file, HTTP globe and search. Preserve the single amber palette and the same stroke weight.
+```
+
+## http.png
+
+Путь: `public/icons/http.png`.
+
+```text
+Use case: logo-brand. Asset type: one finished toolbar icon for the Element Anvil desktop code editor. Create exactly ONE isolated a globe: one circle, a single vertical elliptical meridian and two clean horizontal latitude lines. All visible strokes must be the SAME solid muted amber color #E5BC73, RGB 229 188 115. Genuinely transparent background, including inside all outline shapes. Strictly consistent flat geometric monoline icon style, smooth clean outlines with identical stroke thickness equivalent to 2 pixels on a 24 by 24 grid, rounded caps and rounded joins. No filled panels. The icon silhouette must occupy 78 percent of the square canvas, centered and optically balanced. Readable at 24 to 28 pixels. No letters, words, labels, typography, shadows, gradients, glow, bevel, texture, white strokes, black strokes or decorative particles. This is a member of a matching set of four icons: folder, source file, HTTP globe and search. Preserve the single amber palette and the same stroke weight.
+```
+
+## search.png
+
+Путь: `public/icons/search.png`.
+
+```text
+Use case: logo-brand. Asset type: one finished toolbar icon for the Element Anvil desktop code editor. Create exactly ONE isolated a magnifying glass: one large circle and one short diagonal handle. All visible strokes must be the SAME solid muted amber color #E5BC73, RGB 229 188 115. Genuinely transparent background, including inside all outline shapes. Strictly consistent flat geometric monoline icon style, smooth clean outlines with identical stroke thickness equivalent to 2 pixels on a 24 by 24 grid, rounded caps and rounded joins. No filled panels. The icon silhouette must occupy 78 percent of the square canvas, centered and optically balanced. Readable at 24 to 28 pixels. No letters, words, labels, typography, shadows, gradients, glow, bevel, texture, white strokes, black strokes or decorative particles. This is a member of a matching set of four icons: folder, source file, HTTP globe and search. Preserve the single amber palette and the same stroke weight.
 ```
 
 ## files.png
@@ -27,7 +41,7 @@ Use case: logo-brand. Asset type: one production toolbar icon for the Element An
 Путь: `public/icons/files.png`.
 
 ```text
-Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: two overlapping document outlines, ivory with amber small corner. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
+Use case: logo-brand. Asset type: one finished toolbar icon for the Element Anvil desktop code editor. Create exactly ONE isolated two overlapping document outlines, each with one small folded upper right corner, representing a collection of files; no code brackets. All visible strokes must be the SAME solid muted amber color #E5BC73, RGB 229 188 115. Genuinely transparent background, including inside all outline shapes. Strictly consistent flat geometric monoline icon style, smooth clean outlines with identical stroke thickness equivalent to 2 pixels on a 24 by 24 grid, rounded caps and rounded joins. No filled panels. The icon silhouette must occupy 78 percent of the square canvas, centered and optically balanced. Readable at 24 to 28 pixels. No letters, words, labels, typography, shadows, gradients, glow, bevel, texture, white strokes, black strokes or decorative particles. This is a member of a matching set of four icons: folder, source file, HTTP globe and search. Preserve the single amber palette and the same stroke weight.
 ```
 
 ## todo.png
@@ -52,14 +66,6 @@ Use case: logo-brand. Asset type: one production toolbar icon for the Element An
 
 ```text
 Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a stylized geometric bug with six legs, simple amber and ivory. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
-```
-
-## http.png
-
-Текущий файл: `public/icons/http.svg`; первоначальный PNG заменён.
-
-```text
-Use case: logo-brand. Asset type: one production toolbar icon for the Element Anvil desktop code editor. Subject: a small globe grid with a pair of opposing arrows, muted teal and ivory. Make exactly ONE isolated icon on genuinely transparent background. Flat crisp geometric vector-like pictogram, minimal detail, uniform medium-weight strokes with slightly rounded corners, balanced silhouette readable at 18 to 24 pixels. Centered, generous consistent 20 percent padding. No text, no letters, no gradients, no shadows, no glow, no panel, no surrounding container. Restrained colors as specified. Suitable on dark charcoal UI. Output a square image.
 ```
 
 ## clear.png

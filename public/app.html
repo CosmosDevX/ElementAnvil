@@ -130,17 +130,15 @@
           <h2>Недавние проекты</h2>
           <div id="recent-list"></div>
         </section>
+        <button id="home-http-client" class="ut-text-button">
+          HTTP-клиент
+        </button>
         <button id="return-project" class="ut-text-button ut-hidden">
           Вернуться к проекту
         </button>
         <p id="home-error" class="ut-error" role="alert"></p>
       </div>
     </section>
-    <section
-      id="http-workspace"
-      class="ut-http-workspace ut-hidden"
-      aria-label="HTTP-клиент"
-    ></section>
     <div id="workbench" class="ut-workbench ut-hidden">
       <aside id="explorer" class="ut-explorer">
         <nav class="ut-side-tabs" aria-label="Панели проекта">
@@ -148,6 +146,7 @@
           <button data-side-view="todos" aria-pressed="false">TODO</button>
           <button data-side-view="git" aria-pressed="false">Git</button>
           <button data-side-view="debug" aria-pressed="false">Отладка</button>
+          <button data-side-view="http" aria-pressed="false">HTTP</button>
         </nav>
         <section id="files-view" class="ut-side-view">
           <div class="ut-explorer-heading">
@@ -219,6 +218,11 @@
           id="debug-view"
           class="ut-side-view ut-hidden"
           aria-label="Отладка Элемента"
+        ></section>
+        <section
+          id="http-view"
+          class="ut-side-view ut-hidden"
+          aria-label="Коллекции HTTP"
         ></section>
       </aside>
       <div
@@ -351,6 +355,11 @@
             Выбери изменённый файл во вкладке Git.
           </div>
         </section>
+        <section
+          id="http-workspace"
+          class="ut-http-workspace ut-hidden"
+          aria-label="HTTP-клиент"
+        ></section>
         <section id="console" class="ut-console" aria-label="Консоль">
           <div
             id="console-resizer"
@@ -458,6 +467,12 @@
           value="14"
         /><output id="font-size-value">14 px</output>
       </div>
+      <label class="ut-anomaly-setting"
+        ><span
+          ><strong>Отображать кнопку HTTP-клиента</strong
+          ><small>Быстрый доступ в верхней панели</small></span
+        ><input id="show-http-button" type="checkbox" role="switch"
+      /></label>
       <label class="ut-anomaly-setting"
         ><span
           ><strong>Автосохранение файлов</strong

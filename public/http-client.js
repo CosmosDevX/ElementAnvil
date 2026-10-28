@@ -1,3 +1,5 @@
+import { mountHttpView } from "./http-view.js";
+import { HttpCollectionStore } from "./http-collection-store.js";
 import { icon } from "./icons.js";
 const $ = (id) => document.getElementById(id);
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -8,43 +10,25 @@ const label = (tag, content, className) => {
   return node;
 };
 export class HttpClient {
-  collection = null;
   selected = null;
   folder = null;
-  context = null;
   parameterTab = "pathParams";
   responseTab = "body";
   responses = new Map();
-  queue = Promise.resolve();
-  revision = 0;
-  timer = null;
   controller = null;
-  pendingWrites = 0;
   undo = null;
   constructor({ api, project, close, runProject, canRun, report }) {
     Object.assign(this, { api, project, close, runProject, canRun, report });
-    $("http-workspace").innerHTML = `
-      <div class="ut-http-heading"><strong>HTTP-клиент</strong><span id="http-location"></span><button id="http-run-project" class="ut-secondary">Запустить проект</button><button id="http-back" class="ut-secondary">Вернуться в редактор</button></div>
-      <aside class="ut-http-collections" aria-label="Коллекция запросов">
-        <div class="ut-http-collection-tools"><button id="http-new-folder" class="ut-secondary">＋ Папка</button><button id="http-new-request" class="ut-primary">＋ Запрос</button></div>
-        <button id="http-root" class="ut-http-root">Все запросы</button><div id="http-tree" role="tree" aria-label="Папки и HTTP-запросы"></div>
-        <div class="ut-http-collection-footer"><button id="http-rename" class="ut-text-button" disabled>Переименовать</button><button id="http-delete" class="ut-text-button" disabled>Удалить</button><button id="http-undo" class="ut-text-button ut-hidden">Отменить удаление</button><span id="http-save-state" role="status"></span></div>
-      </aside>
-      <main class="ut-http-main">
-        <div class="ut-http-base"><label for="http-base-url">Базовый URL</label><input id="http-base-url" placeholder="Базовый URL" spellcheck="false" /></div>
-        <div class="ut-http-base"><label for="http-note">Заметка</label><textarea id="http-note" aria-label="Заметка к коллекции" placeholder="Заметка к окружению или API" maxlength="16000" rows="2"></textarea></div>
-        <div id="http-empty" class="ut-http-empty">Создай папку для эндпоинта и добавь запрос.</div>
-        <section id="http-request-editor" class="ut-hidden" aria-label="Редактор HTTP-запроса">
-          <div class="ut-http-request-name"><input id="http-request-name" aria-label="Название запроса" maxlength="120" /><select id="http-request-folder" aria-label="Папка запроса"></select></div>
-          <div class="ut-http-url-row"><select id="http-method" aria-label="Тип запроса">${["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].map((method) => `<option>${method}</option>`).join("")}</select><input id="http-path" aria-label="Путь или URL" placeholder="Путь или полный URL" spellcheck="false" /><button id="http-send" class="ut-primary" title="Отправить · Ctrl+Enter">Отправить</button><button id="http-cancel" class="ut-secondary ut-hidden">Отменить</button></div>
-          <div class="ut-http-tabs" role="tablist" aria-label="Параметры запроса"><button role="tab" data-http-tab="pathParams">Параметры пути</button><button role="tab" data-http-tab="query">Параметры запроса</button><button role="tab" data-http-tab="headers">Заголовки</button><button role="tab" data-http-tab="body">Тело</button></div>
-          <div id="http-parameter-area"><div id="http-query-options" class="ut-hidden ut-http-options"><label for="http-query-separator">Разделитель параметров</label><select id="http-query-separator"><option value="&">&amp; — стандартный</option><option value=";">; — совместимость</option></select></div><div id="http-parameters"></div><button id="http-add-parameter" class="ut-text-button">＋ Параметр</button></div>
-          <div id="http-body-area" class="ut-hidden"><select id="http-body-type" aria-label="Тип тела запроса"><option value="none">Без тела</option><option value="json">JSON</option><option value="text">Текст</option></select><textarea id="http-request-body" aria-label="Тело запроса" spellcheck="false" placeholder='{"name": "Иван"}'></textarea></div>
-          <div class="ut-http-options ut-http-timeout"><label for="http-timeout">Тайм-аут, сек</label><input id="http-timeout" type="number" min="1" max="120" value="30" /></div>
-        </section>
-        <section class="ut-http-response" aria-label="HTTP-ответ"><div class="ut-http-response-heading"><strong>Ответ</strong><span id="http-response-status"></span><span id="http-response-meta"></span></div><div class="ut-http-tabs"><button id="http-response-body-tab">Тело ответа</button><button id="http-response-headers-tab">Заголовки ответа</button><label class="ut-http-pretty"><input id="http-pretty" type="checkbox" checked /> Форматировать JSON</label></div><pre id="http-response-body" tabindex="0">Отправь запрос, чтобы увидеть ответ.</pre><div id="http-response-headers" class="ut-hidden"></div></section>
-      </main>
-      <dialog id="http-name-dialog" class="ut-dialog"><form id="http-name-form"><div class="ut-dialog-heading"><h2 id="http-name-title">Новая папка</h2><button id="http-name-close" type="button" class="ut-icon-button" aria-label="Закрыть создание запроса">×</button></div><label class="ut-setting-label" for="http-new-name">Название</label><input id="http-new-name" maxlength="120" required autocomplete="off" /><div class="ut-dialog-actions"><button class="ut-primary" type="submit">Сохранить</button></div></form></dialog>`;
+    mountHttpView();
+    this.openGeneration = 0;
+    this.store = new HttpCollectionStore({
+      api,
+      report,
+      status: (text) => {
+        $("http-save-state").textContent = text;
+      },
+    });
+    this.loading(true);
     $("http-back").onclick = () => this.flush().then(close).catch(report);
     $("http-new-folder").onclick = () => this.nameDialog("folder");
     $("http-new-request").onclick = () => this.nameDialog("request");
@@ -133,18 +117,31 @@ export class HttpClient {
       this.renderResponse();
     };
     $("http-run-project").onclick = runProject;
-    $("http-workspace").addEventListener("keydown", (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-        event.preventDefault();
-        this.send();
-      }
-    });
+    for (const root of [$("http-workspace"), $("http-view")])
+      root.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          this.send();
+        }
+      });
+  }
+  get collection() {
+    return this.store.collection;
+  }
+  set collection(value) {
+    this.store.collection = value;
+  }
+  get context() {
+    return this.store.context;
   }
   get visible() {
-    return !$("http-workspace").classList.contains("ut-hidden");
+    return (
+      !$("workbench").classList.contains("ut-hidden") &&
+      !$("http-workspace").classList.contains("ut-hidden")
+    );
   }
   get dirty() {
-    return this.timer !== null || this.pendingWrites > 0;
+    return this.store.dirty;
   }
   request() {
     return this.collection?.requests.find(
@@ -152,57 +149,58 @@ export class HttpClient {
     );
   }
   async open() {
-    await this.flush();
-    const context = this.project()?.id || null;
-    if (this.collection && this.context === context) {
-      this.render();
-      return;
-    }
-    this.controller?.abort();
-    this.revision++;
-    const { collection } = await this.api("requests/load", {
-      projectId: context,
-    });
-    this.context = context;
-    this.collection = collection;
-    $("http-save-state").textContent = "";
-    this.selected = collection.requests[0]?.id || null;
-    this.folder = this.request()?.folderId || null;
-    this.responses.clear();
-    this.undo = null;
-    this.render();
-  }
-  changed() {
-    this.revision++;
-    $("http-save-state").textContent = "Сохранение…";
-    clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.flush().catch(this.report), 400);
-  }
-  async flush() {
-    if (!this.collection) return;
-    if (!this.timer) return this.queue;
-    clearTimeout(this.timer);
-    this.timer = null;
-    const collection = clone(this.collection),
-      projectId = this.context,
-      revision = this.revision;
-    const pending = this.queue
-      .catch(() => {})
-      .then(() => this.api("requests/save", { projectId, collection }));
-    this.pendingWrites++;
-    this.queue = pending;
+    const generation = ++this.openGeneration;
+    this.loading(true);
     try {
-      await pending;
-      if (this.context === projectId && revision === this.revision)
-        $("http-save-state").textContent = "Сохранено";
+      const context = this.project()?.id || null;
+      const changed = await this.store.open(context);
+      if (
+        generation !== this.openGeneration ||
+        context !== (this.project()?.id || null)
+      )
+        return;
+      if (changed) {
+        this.controller?.abort();
+        this.controller = null;
+        this.selected = this.collection.requests[0]?.id || null;
+        this.folder = this.request()?.folderId || null;
+        this.responses.clear();
+        this.undo = null;
+        this.render();
+      }
     } catch (error) {
-      $("http-save-state").textContent = "Не сохранено";
-      // Keep edits available for a later retry rather than replacing them with disk data.
-      this.timer = setTimeout(() => {}, 0);
+      if (generation === this.openGeneration)
+        $("http-loading").textContent = error.message;
       throw error;
     } finally {
-      this.pendingWrites--;
+      if (generation === this.openGeneration) this.loading(false);
     }
+  }
+  loading(value) {
+    this.isLoading = value;
+    for (const node of [$("http-view"), $("http-workspace")])
+      node.classList.toggle("ut-http-loading", value);
+    $("http-view").querySelector(".ut-http-collections").inert =
+      value || !this.collection;
+    $("http-workspace").querySelector(".ut-http-main").inert =
+      value || !this.collection;
+    if (value) $("http-loading").textContent = "Загрузка…";
+    else if (this.collection) $("http-loading").textContent = "";
+  }
+  reset() {
+    this.openGeneration++;
+    this.store.reset();
+    this.controller?.abort();
+    this.controller = null;
+    this.selected = this.folder = this.undo = null;
+    this.responses.clear();
+    this.loading(true);
+  }
+  changed() {
+    this.store.changed();
+  }
+  flush() {
+    return this.store.flush();
   }
   nameDialog(kind) {
     this.nameAction = kind;
@@ -478,7 +476,7 @@ export class HttpClient {
   }
   async send() {
     const request = this.request();
-    if (!request || this.controller) return;
+    if (!request || this.controller || this.isLoading) return;
     const selected = request.id,
       context = this.context,
       controller = new AbortController();

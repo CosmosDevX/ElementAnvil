@@ -58,15 +58,12 @@ export class DevTools {
   }
   show(view) {
     this.view = view;
-    this.ctx.showGit(view === "git");
+    this.ctx.showView(view);
     this.ctx.showExplorer();
-    for (const node of document.querySelectorAll("[data-side-view]"))
-      node.setAttribute("aria-pressed", String(node.dataset.sideView === view));
-    for (const id of ["files", "todos", "git", "debug"])
-      $(id + "-view").classList.toggle("ut-hidden", id !== view);
     if (view === "todos") this.refreshTodos();
     if (view === "git") this.refreshGit();
     if (view === "debug") this.debug.poll();
+    if (view === "http") this.ctx.openHttp().catch(this.ctx.report);
   }
   decorateTodos() {
     const model = this.ctx.editor.getModel();

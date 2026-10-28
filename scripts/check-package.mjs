@@ -71,20 +71,14 @@ try {
     "git",
     "debug",
     "http",
+    "search",
     "clear",
     "stop",
     "run",
     "format",
   ]) {
-    const vector = ["folder", "element-file", "http"].includes(icon);
-    const response = await fetch(
-      origin + `/icons/${icon}.${vector ? "svg" : "png"}`,
-    );
+    const response = await fetch(origin + `/icons/${icon}.png`);
     assert.equal(response.status, 200);
-    if (vector) {
-      assert.match(await response.text(), /<svg/);
-      continue;
-    }
     const bytes = new Uint8Array(await response.arrayBuffer());
     assert.deepEqual([...bytes.slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   }
@@ -93,12 +87,26 @@ try {
     /git-diff-dialog|⌕ Символы/,
   );
   console.log("PASS: generated icon assets and integrated Git diff workspace");
+  assert.equal(session.settings.showHttpButton, true);
+  const hiddenHttp = await post("settings", { showHttpButton: false });
+  assert.equal(hiddenHttp.settings.showHttpButton, false);
+  assert.equal(
+    (await fetch(origin + "/api/session").then((r) => r.json())).settings
+      .showHttpButton,
+    false,
+  );
+  console.log(
+    "PASS: packaged HTTP sidebar assets and persistent header preference",
+  );
   for (const file of [
     "devtools.js",
     "debug-view.js",
     "todos.js",
     "ui-elements.js",
     "devtools.css",
+    "workspace-views.js",
+    "http-view.js",
+    "http-collection-store.js",
   ])
     assert.equal((await fetch(origin + "/" + file)).status, 200);
   const project = await post("project/create", {

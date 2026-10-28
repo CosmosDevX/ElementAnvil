@@ -1,16 +1,20 @@
 .ut-http-workspace {
-  height: calc(100vh - 52px);
-  display: grid;
-  grid-template-columns: 265px minmax(0, 1fr);
-  grid-template-rows: 49px minmax(0, 1fr);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100px;
+  min-width: 0;
+  overflow: hidden;
   background: var(--editor);
 }
 .ut-http-heading {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 18px;
+  padding: 8px 14px;
+  min-height: 44px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
 }
 .ut-http-heading strong {
@@ -32,7 +36,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  flex: 1;
+  min-height: 0;
   background: var(--panel);
 }
 .ut-http-collection-tools {
@@ -104,6 +109,7 @@
   min-height: 14px;
 }
 .ut-http-main {
+  flex: 1;
   overflow: auto;
   min-height: 0;
   min-width: 0;
@@ -298,9 +304,6 @@
   margin: 4px 0;
 }
 @media (max-width: 1000px) {
-  .ut-http-workspace {
-    grid-template-columns: 225px minmax(0, 1fr);
-  }
   .ut-http-main {
     padding: 16px;
   }
@@ -310,4 +313,25 @@
   .ut-http-pretty {
     font-size: 10px;
   }
+}
+.ut-http-dialog input {
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.ut-http-loading .ut-http-main,
+.ut-http-loading .ut-http-collections {
+  opacity: 0.5;
+}
+#http-loading {
+  color: var(--muted);
+  font-size: 11px;
+}
+#http-note {
+  min-height: 48px;
+  max-height: 150px;
+  margin-top: 0;
+}
+.ut-http-tabs {
+  flex-wrap: wrap;
 }
