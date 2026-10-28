@@ -219,7 +219,6 @@ function showHome() {
   $("workbench").classList.add("ut-hidden");
   $("home").classList.remove("ut-hidden");
   $("project-title").textContent = "";
-  $("return-project").classList.toggle("ut-hidden", !session.project);
   renderRecent();
 }
 function showWorkbench() {
@@ -1233,7 +1232,6 @@ function bind() {
     devtools.show("http");
   };
   $("http-client-button").onclick = showHttp;
-  $("home-http-client").onclick = showHttp;
   for (const id of ["open-project", "home-open-folder"])
     $(id).onclick = () => projectAction("project/open");
   for (const id of ["open-file", "home-open-file"])
@@ -1245,7 +1243,6 @@ function bind() {
     ])
       .then(showHome)
       .catch(report);
-  $("return-project").onclick = showWorkbench;
   $("new-element-project").onclick = () => newProject("sbsl");
   $("new-web-project").onclick = () => newProject("sbsl-web");
   $("create-project-form").onsubmit = (e) => {

@@ -60,9 +60,9 @@ async function stopped(after = 0) {
   throw Error("No stopped event");
 }
 try {
-  assert.equal(session.version, "0.6.2");
+  assert.equal(session.version, "0.6.3");
   assert.ok(session.elementDebug);
-  console.log("PASS: packaged version 0.6.2 and native debugger discovery");
+  console.log("PASS: packaged version 0.6.3 and native debugger discovery");
   for (const icon of [
     "folder",
     "element-file",

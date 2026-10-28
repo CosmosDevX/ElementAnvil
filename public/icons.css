@@ -29,6 +29,18 @@
   flex-basis: 30px;
   transform: none;
 }
+.ut-editor-actions #run {
+  width: 36px;
+  height: 36px;
+}
+.ut-editor-actions #run .ut-generated-icon {
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
+}
+.ut-mono-icon.ut-stop-icon {
+  background-color: #e8857b;
+}
 .ut-side-tabs {
   height: 62px;
   overflow-x: auto;
@@ -62,6 +74,20 @@
 }
 .ut-http-folder > .ut-generated-icon {
   margin-right: 6px;
+}
+.ut-terminal-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 4px;
+}
+.ut-terminal-toolbar .ut-generated-icon {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+  transform: none;
 }
 .ut-start-card > .ut-generated-icon {
   width: 32px;

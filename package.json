@@ -1,6 +1,6 @@
 {
   "name": "unexplored-editor",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "type": "module",
   "main": "desktop/main.mjs",
@@ -61,7 +61,9 @@
       "!node_modules/**/*.map",
       "!node_modules/**/*.pdb",
       "!node_modules/**/*.ts",
-      "!node_modules/**/{test,tests,docs,examples,benchmark}/**"
+      "!node_modules/**/{test,tests,docs,examples,benchmark}/**",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
     ],
     "asar": true,
     "asarUnpack": [
@@ -113,5 +115,6 @@
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
     "prettier": "^3.9.10"
-  }
+  },
+  "license": "MIT"
 }

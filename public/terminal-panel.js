@@ -15,15 +15,21 @@ export class TerminalPanel {
     this.select = element("select", "ut-side-input");
     this.select.setAttribute("aria-label", "Терминалы");
     this.select.onchange = () => this.activate(this.select.value);
-    const clear = button("", () => this.clear(), "Очистить экран терминала");
-    clear.setAttribute("aria-label", clear.title);
-    clear.append(icon("clear"));
-    toolbar.append(
-      this.select,
-      button("+", () => this.create().catch(ctx.report), "Новый терминал"),
-      button("×", () => this.close().catch(ctx.report), "Закрыть терминал"),
-      clear,
+    const create = button(
+      "",
+      () => this.create().catch(ctx.report),
+      "Новый терминал",
     );
+    create.setAttribute("aria-label", create.title);
+    create.append(icon("new"));
+    const close = button(
+      "",
+      () => this.close().catch(ctx.report),
+      "Закрыть терминал",
+    );
+    close.setAttribute("aria-label", close.title);
+    close.append(icon("close"));
+    toolbar.append(this.select, create, close);
     this.host = element("div", "ut-terminal-host");
     this.empty = element(
       "p",

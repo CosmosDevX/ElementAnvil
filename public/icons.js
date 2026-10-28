@@ -18,9 +18,14 @@ export function icon(name) {
     "git",
     "debug",
     "run",
+    "clear",
+    "stop",
+    "new",
+    "close",
   ].includes(name);
   const image = document.createElement(monochrome ? "span" : "img");
   image.className = "ut-generated-icon" + (monochrome ? " ut-mono-icon" : "");
+  if (name === "stop") image.classList.add("ut-stop-icon");
   if (monochrome)
     image.style.setProperty("--icon-image", `url("/icons/${name}.png")`);
   else image.src = `/icons/${name}.png`;
@@ -47,15 +52,14 @@ export function installIcons() {
     ['[data-side-view="git"]', "git"],
     ['[data-side-view="debug"]', "debug"],
     ["#http-client-button", "http"],
-    ["#home-http-client", "http"],
     ['[data-side-view="http"]', "http"],
     ["#project-symbols", "search"],
     ["#refresh-tree", "refresh"],
   ]) {
     const node = document.querySelector(selector);
+    if (!node) continue;
     if (name === "refresh") node.replaceChildren();
-    if (name === "http" && selector !== "#home-http-client")
-      node.textContent = "HTTP";
+    if (name === "http") node.textContent = "HTTP";
     if (name === "search") node.textContent = "Искать";
     node.prepend(icon(name));
   }
