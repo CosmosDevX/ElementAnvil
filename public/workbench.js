@@ -17,6 +17,7 @@ import { MarkdownPreview } from "./markdown-preview.js";
 import { markdownTarget } from "./markdown-path.js";
 import { Keybindings, defaultKeys, keyLabel } from "./keybindings.js";
 import { ProjectSearch } from "./project-search.js";
+import { FullTextSearch } from "./fulltext-search.js";
 import { selectionMatches } from "./selection-matches.js";
 import { createExplorer } from "./project-explorer.js";
 import { ExplorerDrag } from "./explorer-drag.js";
@@ -34,6 +35,8 @@ const diagnosticErrors = new Map();
 const pendingWrites = new Set();
 const externalConflicts = new Set();
 const diskTexts = new WeakMap();
+const diskGuards = new WeakMap();
+const modelWrites = new WeakMap();
 const deletingFiles = new Set();
 let silentModelChange = false;
 let session,
@@ -47,6 +50,7 @@ let session,
   fileActions,
   terminalPanel,
   projectSearch,
+  fulltextSearch,
   referencesSearch,
   referenceTarget,
   explorer,
@@ -54,6 +58,7 @@ let session,
   projectSync,
   nameAction,
   fileMutation = false,
+  closing = false,
   currentName = null,
   selectedDirectory = "",
   consolePanel = "output",
@@ -246,14 +251,45 @@ async function save(name = currentName) {
   if (!name || !models.has(name) || deletingFiles.has(name)) return;
   clearTimeout(saves.get(name));
   saves.delete(name);
-  const model = models.get(name),
+  const model = models.get(name);
+  if (modelWrites.has(model)) {
+    await modelWrites.get(model);
+    if (dirty.has(name)) return save(name);
+    return;
+  }
+  if (diskGuards.has(model) && externalConflicts.has(name) && !closing) {
+    const answer = await confirmUnsaved(
+      [name],
+      false,
+      `«${name}» изменился на диске после просмотра замен. Перезаписать его текущим текстом редактора?`,
+    );
+    if (answer !== "save")
+      throw Object.assign(new Error("Сохранение отменено"), {
+        cancelled: true,
+      });
+    diskGuards.delete(model);
+  }
+  const guard = diskGuards.get(model),
     text = model.getValue();
-  const pending = api("save", projectData({ path: name, text }));
+  const pending = api(
+    "save",
+    projectData({
+      path: name,
+      text,
+      ...(guard ? { expectedHash: guard } : {}),
+    }),
+  );
+  modelWrites.set(model, pending);
   pendingWrites.add(pending);
   try {
     await pending;
+    if (guard === diskGuards.get(model)) diskGuards.delete(model);
+  } catch (error) {
+    if (guard) externalConflicts.add(name);
+    throw error;
   } finally {
     pendingWrites.delete(pending);
+    modelWrites.delete(model);
   }
   if (models.get(name) === model) {
     diskTexts.set(model, text);
@@ -266,14 +302,15 @@ async function save(name = currentName) {
 async function saveAll() {
   for (const name of [...dirty]) await save(name);
 }
-function confirmUnsaved(names, allowDiscard = true) {
+function confirmUnsaved(names, allowDiscard = true, message) {
   if (!names.length) return Promise.resolve("save");
   return new Promise((resolve) => {
     const dialog = $("unsaved-dialog");
     $("unsaved-message").textContent =
-      names.length === 1
+      message ||
+      (names.length === 1
         ? `Сохранить изменения в «${names[0]}»?`
-        : `Сохранить изменения в ${names.length} файлах?`;
+        : `Сохранить изменения в ${names.length} файлах?`);
     $("unsaved-discard").classList.toggle("ut-hidden", !allowDiscard);
     let answer = "cancel";
     for (const [id, value] of [
@@ -434,7 +471,12 @@ async function applyRelocation(result) {
 function scheduleSave(name) {
   clearTimeout(saves.get(name));
   saves.delete(name);
-  if (session.settings.autoSave === false || externalConflicts.has(name))
+  if (
+    closing ||
+    fileMutation ||
+    session.settings.autoSave === false ||
+    externalConflicts.has(name)
+  )
     return;
   saves.set(
     name,
@@ -667,7 +709,10 @@ function createModel(name, text) {
   diskTexts.set(model, text);
   model.onDidChangeContent(() => {
     if (silentModelChange) return;
-    dirty.add(name);
+    if (model.getValue() === diskTexts.get(model)) {
+      dirty.delete(name);
+      diskGuards.delete(model);
+    } else dirty.add(name);
     problems.delete(name);
     diagnosticErrors.delete(name);
     monaco.editor.setModelMarkers(model, "native-lsp", []);
@@ -675,16 +720,22 @@ function createModel(name, text) {
     scheduleDiagnostics();
     renderTabs();
     updateStatus();
-    scheduleSave(name);
+    if (dirty.has(name)) scheduleSave(name);
+    else {
+      clearTimeout(saves.get(name));
+      saves.delete(name);
+    }
   });
   return model;
 }
 async function openFile(name, provided) {
+  const projectId = session.project?.id;
   if (["git", "http"].includes(devtools?.view)) devtools.show("files");
   if (!models.has(name)) {
     const file =
       provided || (await api("file/read", projectData({ path: name })));
-    createModel(name, file.text);
+    if (session.project?.id !== projectId) return;
+    if (!models.has(name)) createModel(name, file.text);
   }
   const parts = name.split("/");
   for (let i = 1; i < parts.length; i++) {
@@ -1112,7 +1163,7 @@ function newEntry(kind) {
 }
 function renderSettings() {
   for (const [id, command, label] of [
-    ["project-symbols", "symbols", "Структуры и методы проекта"],
+    ["project-symbols", "searchProject", "Поиск по проекту"],
     ["save", "save", "Сохранить"],
     ["format", "format", "Форматировать"],
     ["open-project", "openProject", "Открыть папку"],
@@ -1173,7 +1224,7 @@ function settings(patch) {
 }
 function bind() {
   $("project-symbols").onclick = () =>
-    session.project ? projectSearch.show() : notice("Сначала открой проект.");
+    session.project ? fulltextSearch.show() : notice("Сначала открой проект.");
   const showHttp = () => {
     showWorkbench();
     devtools.show("http");
@@ -1321,6 +1372,8 @@ function bind() {
     console: () => panels.toggleConsole(),
     terminal: () => terminalPanel.show(),
     symbols: () => projectSearch.show(),
+    searchProject: () => fulltextSearch.show(),
+    replaceProject: () => fulltextSearch.show(true),
     find: () => editorCommand("editor.action.startFindReplaceAction"),
     replace: () => editorCommand("editor.action.startFindReplaceAction"),
     definition: () => editorCommand("editor.action.revealDefinition"),
@@ -1406,6 +1459,92 @@ async function initialize() {
       editor.focus();
     },
     report,
+  });
+  fulltextSearch = new FullTextSearch({
+    editor,
+    api,
+    report,
+    project: () => session.project,
+    language: languageOf,
+    symbols: () => projectSearch.show(),
+    selection: () =>
+      editor.getModel()?.getValueInRange(editor.getSelection()) || "",
+    documents: () =>
+      [...models]
+        .filter(([name]) => dirty.has(name))
+        .map(([path, model]) => ({ path, text: model.getValue() })),
+    open: async (item) => {
+      await openFile(item.path);
+      const model = editor.getModel(),
+        start = model.getPositionAt(item.offset),
+        end = model.getPositionAt(item.offset + item.length);
+      editor.setSelection(
+        new monaco.Range(
+          start.lineNumber,
+          start.column,
+          end.lineNumber,
+          end.column,
+        ),
+      );
+      editor.revealPositionInCenter(start);
+      editor.focus();
+    },
+    apply: async (plan, changes) => {
+      if (
+        fileMutation ||
+        projectBusy ||
+        closing ||
+        running ||
+        devtools.debug.active ||
+        devtools.gitBusy
+      )
+        throw Error("Сначала заверши текущее действие");
+      if (plan.projectId !== session.project?.id)
+        throw Error("Проект изменился. Повтори поиск.");
+      fileMutation = true;
+      editor.updateOptions({ readOnly: true });
+      for (const change of changes) {
+        clearTimeout(saves.get(change.path));
+        saves.delete(change.path);
+      }
+      try {
+        await Promise.all([...pendingWrites]);
+        const { verified } = await api("search/validate", {
+          projectId: plan.projectId,
+          planId: plan.planId,
+          paths: changes.map((item) => item.path),
+        });
+        if (plan.projectId !== session.project?.id)
+          throw Error("Проект изменился. Повтори поиск.");
+        // Validate every open buffer before changing any model. The edits below
+        // are synchronous and cannot interleave with a project switch or typing.
+        for (const change of changes) {
+          if (
+            externalConflicts.has(change.path) ||
+            (models.has(change.path) &&
+              models.get(change.path).getValue() !== change.before)
+          )
+            throw Error("Файл изменился после просмотра: " + change.path);
+        }
+        for (const change of changes) {
+          const model =
+            models.get(change.path) || createModel(change.path, change.before);
+          diskGuards.set(
+            model,
+            verified.find((item) => item.path === change.path).hash,
+          );
+          replaceDocumentText(model, change.after);
+        }
+      } finally {
+        fileMutation = false;
+        editor.updateOptions({
+          readOnly: devtools.debug.active || devtools.gitBusy,
+        });
+        renderTabs();
+        updateStatus();
+        for (const name of dirty) scheduleSave(name);
+      }
+    },
   });
   referencesSearch = new ProjectSearch({
     prefix: "references",
@@ -1636,6 +1775,9 @@ async function initialize() {
     fileActions,
     languageOf,
     openFile,
+    focusEditor: () => editor.focus(),
+    canDelete: () => session.trash && !projectBusy && !closing,
+    deleteFile,
     report,
     drag: explorerDrag,
     project: () => session.project,
@@ -1673,14 +1815,45 @@ async function initialize() {
   });
   bind();
   installIcons();
-  window.unexploredWindow?.onSaveBeforeClose(async () => {
+  window.unexploredWindow?.onCloseRequest(async ({ phase, requestId }) => {
+    if (phase === "cancel") {
+      closing = false;
+      document.body.inert = false;
+      for (const name of dirty) scheduleSave(name);
+      if (httpClient.dirty) httpClient.flush().catch(report);
+      return;
+    }
     try {
-      await saveAll();
-      await httpClient.flush();
-      await settingsQueue;
-      window.unexploredWindow.closeAfterSaving();
+      if (phase === "prepare") {
+        closing = true;
+        document.body.inert = true;
+        for (const timer of saves.values()) clearTimeout(timer);
+        saves.clear();
+        clearTimeout(httpClient.store.timer);
+        while (fileMutation)
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        await Promise.allSettled([
+          ...pendingWrites,
+          httpClient.store.queue,
+          settingsQueue,
+        ]);
+        window.unexploredWindow.closePrepared({
+          requestId,
+          files: [...dirty],
+          httpDirty: httpClient.dirty,
+        });
+      } else if (phase === "save") {
+        await saveAll();
+        await httpClient.flush();
+        await settingsQueue;
+        window.unexploredWindow.closeSaved({
+          requestId,
+          ok: !dirty.size && !httpClient.dirty,
+        });
+      }
     } catch (error) {
       report(error);
+      window.unexploredWindow.closeSaved({ requestId, ok: false });
     }
   });
   renderSettings();

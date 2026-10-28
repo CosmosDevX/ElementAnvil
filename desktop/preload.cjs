@@ -1,11 +1,15 @@
 const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("unexploredWindow", {
-  onSaveBeforeClose(callback) {
-    const listener = () => callback();
-    ipcRenderer.on("save-before-close", listener);
-    return () => ipcRenderer.removeListener("save-before-close", listener);
+  onCloseRequest(callback) {
+    const listener = (_event, message) => callback(message);
+    ipcRenderer.on("close-request", listener);
+    ipcRenderer.send("close-ready");
+    return () => ipcRenderer.removeListener("close-request", listener);
   },
-  closeAfterSaving() {
-    ipcRenderer.send("files-saved-for-close");
+  closePrepared(message) {
+    ipcRenderer.send("close-prepared", message);
+  },
+  closeSaved(message) {
+    ipcRenderer.send("close-saved", message);
   },
 });

@@ -43,7 +43,7 @@ async function post(endpoint, data = {}) {
 }
 try {
   assert.equal(session.project, null);
-  assert.equal(session.version, "0.5.0");
+  assert.equal(session.version, "0.6.0");
   const markdownModule = await fetch(`${origin}/markdown/markdown-it.mjs`);
   assert.match(markdownModule.headers.get("content-type"), /text\/javascript/);
   assert.equal(session.settings.anomalies, false);
@@ -102,6 +102,40 @@ try {
   assert.equal(opened.project.entry, "Скрипт.sbsl");
   const tree = await post("tree");
   assert.ok(tree.entries.some((e) => e.name === "Модули"));
+  const textPlan = await post("search/preview", {
+    query: "ORIGINAL_SEARCH",
+    replacement: "REPLACED_SEARCH",
+    include: "*.sbsl",
+    documents: [
+      { path: "Скрипт.sbsl", text: "// ORIGINAL_SEARCH\nметод Скрипт()\n;\n" },
+    ],
+  });
+  assert.equal(textPlan.total, 1);
+  assert.equal(
+    textPlan.changes[0].after,
+    "// REPLACED_SEARCH\nметод Скрипт()\n;\n",
+  );
+  const validation = await post("search/validate", {
+    planId: textPlan.planId,
+    paths: ["Скрипт.sbsl"],
+  });
+  assert.match(validation.verified[0].hash, /^[a-f0-9]{64}$/);
+  assert.equal(
+    (await request("search/text", { query: "[", regex: true })).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("search/validate", {
+        planId: "stale",
+        paths: ["Скрипт.sbsl"],
+      })
+    ).status,
+    409,
+  );
+  console.log(
+    "PASS: project text search, unsaved preview, conflict validation and invalid regex protection",
+  );
   await post("file/create", { path: "Проверка", kind: "directory" });
   await post("file/create", { path: "Проверка/Новый.txt", kind: "file" });
   await post("save", {

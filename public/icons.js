@@ -6,6 +6,7 @@ export function icon(name) {
     "http",
     "search",
     "files",
+    "refresh",
   ].includes(name);
   const image = document.createElement(monochrome ? "span" : "img");
   image.className = "ut-generated-icon" + (monochrome ? " ut-mono-icon" : "");
@@ -30,8 +31,10 @@ export function installIcons() {
     ["#home-http-client", "http"],
     ['[data-side-view="http"]', "http"],
     ["#project-symbols", "search"],
+    ["#refresh-tree", "refresh"],
   ]) {
     const node = document.querySelector(selector);
+    if (name === "refresh") node.replaceChildren();
     if (name === "http" && selector !== "#home-http-client")
       node.textContent = "HTTP";
     if (name === "search") node.textContent = "Искать";

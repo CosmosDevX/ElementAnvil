@@ -34,9 +34,14 @@
   gap: 6px;
 }
 .ut-tree-item > .ut-generated-icon {
-  width: 24px;
-  height: 24px;
-  flex-basis: 24px;
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
+}
+.ut-tree-tools .ut-generated-icon {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
 }
 .ut-file-tab > .ut-generated-icon {
   width: 22px;

@@ -12,6 +12,7 @@ import { mkdir, readdir, copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 import { openTargets } from "./open-targets.mjs";
+import { WindowClose } from "./window-close.mjs";
 
 app.setName("Element Anvil");
 // Keep existing preferences and recent projects across the rename.
@@ -116,29 +117,47 @@ else {
           sandbox: true,
         },
       });
-      let savedForClose = false;
+      const closeSession = new WindowClose({
+        send: (message) => window.webContents.send("close-request", message),
+        close: () => window.close(),
+        ask: async ({ files, httpDirty }) => {
+          const { response } = await dialog.showMessageBox(window, {
+            type: "question",
+            title: "Несохранённые изменения",
+            message: "Сохранить изменения перед выходом?",
+            detail: [
+              ...files.slice(0, 20),
+              ...(httpDirty ? ["HTTP-коллекция"] : []),
+            ].join("\n"),
+            buttons: ["Сохранить", "Не сохранять", "Отмена"],
+            defaultId: 0,
+            cancelId: 2,
+            noLink: true,
+          });
+          return response;
+        },
+      });
+      window.on("close", (event) => {
+        if (!closeSession.request()) event.preventDefault();
+      });
       window.webContents.on("will-prevent-unload", (event) => {
-        if (savedForClose) {
-          event.preventDefault();
-          return;
-        }
-        const choice = dialog.showMessageBoxSync(window, {
-          type: "warning",
-          title: "Несохранённые изменения",
-          message: "Сохранить изменения перед закрытием?",
-          buttons: ["Сохранить и закрыть", "Закрыть без сохранения", "Отмена"],
-          defaultId: 0,
-          cancelId: 2,
-          noLink: true,
+        if (closeSession.approved) event.preventDefault();
+      });
+      for (const phase of ["ready", "prepared", "saved"]) {
+        ipcMain.on("close-" + phase, (event, data) => {
+          if (event.sender !== window?.webContents) return;
+          if (phase === "ready") closeSession.ready = true;
+          else if (data && Number.isInteger(data.requestId)) {
+            if (
+              phase === "prepared" &&
+              (!Array.isArray(data.files) ||
+                data.files.some((file) => typeof file !== "string"))
+            )
+              return;
+            closeSession[phase](data);
+          }
         });
-        if (choice === 1) event.preventDefault();
-        else if (choice === 0) window.webContents.send("save-before-close");
-      });
-      ipcMain.on("files-saved-for-close", (event) => {
-        if (event.sender !== window?.webContents) return;
-        savedForClose = true;
-        window.close();
-      });
+      }
       window.webContents.session.setPermissionRequestHandler(
         (contents, permission, callback) => callback(false),
       );

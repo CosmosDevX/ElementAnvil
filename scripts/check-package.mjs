@@ -60,9 +60,9 @@ async function stopped(after = 0) {
   throw Error("No stopped event");
 }
 try {
-  assert.equal(session.version, "0.5.0");
+  assert.equal(session.version, "0.6.0");
   assert.ok(session.elementDebug);
-  console.log("PASS: packaged version 0.5.0 and native debugger discovery");
+  console.log("PASS: packaged version 0.6.0 and native debugger discovery");
   for (const icon of [
     "folder",
     "element-file",
@@ -72,6 +72,7 @@ try {
     "debug",
     "http",
     "search",
+    "refresh",
     "clear",
     "stop",
     "run",
@@ -107,6 +108,8 @@ try {
     "workspace-views.js",
     "http-view.js",
     "http-collection-store.js",
+    "fulltext-search.js",
+    "fulltext-search.css",
   ])
     assert.equal((await fetch(origin + "/" + file)).status, 200);
   const project = await post("project/create", {
@@ -114,6 +117,21 @@ try {
     template: "sbsl",
   });
   projectId = project.project.id;
+  const searchPreview = await post("search/preview", {
+    query: "метод",
+    replacement: "МЕТОД",
+    caseSensitive: true,
+    include: "Скрипт.sbsl",
+  });
+  assert.equal(searchPreview.total, 1);
+  const searchValidation = await post("search/validate", {
+    planId: searchPreview.planId,
+    paths: ["Скрипт.sbsl"],
+  });
+  assert.equal(searchValidation.verified.length, 1);
+  console.log(
+    "PASS: packaged worker searches project text and validates replacement preview",
+  );
   const text =
     "// TODO: packaged check\nметод Скрипт()\n    пер Ответ = 41\n    Ответ = Ответ + 1\n    Консоль.Записать(Ответ)\n;\n";
   await post("save", { path: "Скрипт.sbsl", text });

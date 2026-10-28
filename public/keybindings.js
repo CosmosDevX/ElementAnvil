@@ -7,6 +7,8 @@ export const commands = [
   ["console", "Панель вывода", "Ctrl+KeyJ"],
   ["terminal", "Терминал", "Ctrl+Backquote"],
   ["symbols", "Структуры и методы проекта", "Ctrl+KeyI"],
+  ["searchProject", "Поиск текста по проекту", "Ctrl+Shift+KeyF"],
+  ["replaceProject", "Замена текста по проекту", "Ctrl+Shift+KeyR"],
   ["find", "Поиск и замена в файле", "Ctrl+KeyF", true],
   ["replace", "Замена в файле", "Ctrl+KeyH", true],
   ["definition", "Перейти к определению", "Ctrl+F12", true],

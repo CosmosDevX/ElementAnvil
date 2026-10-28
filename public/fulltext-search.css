@@ -1,0 +1,140 @@
+.ut-text-search-dialog {
+  width: min(1200px, 95vw);
+  height: min(820px, 92vh);
+  max-height: 92vh;
+  padding: 20px;
+}
+.ut-text-search-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.ut-text-search-dialog h2 {
+  margin: 0;
+}
+.ut-text-search-row {
+  display: flex;
+  gap: 10px;
+  margin-block: 10px;
+}
+.ut-text-search-row > input {
+  flex: 1;
+  min-width: 100px;
+}
+.ut-text-search-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+}
+.ut-text-search-options label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+#text-search-include {
+  flex: 1;
+  min-width: 200px;
+}
+.ut-text-search-dialog input:not([type="checkbox"]) {
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 9px 10px;
+  font: 12px var(--mono);
+}
+.ut-text-search-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+#text-search-status {
+  min-height: 20px;
+  margin: 12px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ut-text-search-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+#text-search-results {
+  flex: 1;
+  min-width: 220px;
+  overflow: auto;
+}
+.ut-text-search-content:has(#text-search-comparison:not(.ut-hidden))
+  #text-search-results {
+  flex: 0 0 30%;
+}
+.ut-text-search-file {
+  display: block;
+  padding: 10px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  background: var(--panel);
+}
+.ut-text-search-match {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font: 12px var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ut-text-search-match:hover,
+.ut-text-search-preview-file button:hover {
+  background: var(--hover);
+}
+.ut-text-search-match:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
+}
+.ut-text-search-preview-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+}
+.ut-text-search-preview-file button {
+  padding: 10px 6px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+#text-search-comparison {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+}
+#text-search-diff-title {
+  font-size: 12px;
+  padding: 10px;
+  background: var(--panel);
+}
+#text-search-diff {
+  flex: 1;
+  min-height: 0;
+}
+.ut-text-search-footer {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 10px 0 0;
+}
+@media (max-width: 900px) {
+  #text-search-symbols {
+    display: none;
+  }
+  .ut-text-search-row {
+    flex-wrap: wrap;
+  }
+}

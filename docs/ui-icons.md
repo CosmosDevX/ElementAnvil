@@ -1,5 +1,11 @@
 # Иконки интерфейса Element Anvil
 
+В 0.6.0 добавлена сгенерированная встроенным ImageGen иконка обновления `public/icons/refresh.png` с прозрачным фоном. Она использует ту же янтарную CSS-маску. В дереве файлов и возле названия проекта размер иконок уменьшен до 18 px; вкладки панелей сохраняют прежний размер.
+
+```text
+Use case: logo-brand. Asset type: one toolbar icon for the Element Anvil desktop code editor. Create exactly ONE isolated refresh/reload icon: two open curved circular arrows chasing each other clockwise with small simple arrowheads, balanced readable silhouette. All visible strokes solid muted amber #E5BC73 RGB 229 188 115. Transparent background and transparent interior. Flat geometric monoline, smooth rounded caps and joins, stroke thickness equivalent to 2 pixels on a 24 by 24 grid. Centered, occupying 78 percent of square canvas. Match a set of amber outline folder, overlapping documents, source document, globe and magnifying glass icons. Readable at 18 pixels. No letters, text, labels, shadows, gradients, glow, texture, bevels, panels or decorative particles.
+```
+
 28 октября 2026 года папка, файл Элемента, HTTP-клиент, поиск и вкладка «Файлы» заново сгенерированы встроенным ImageGen отдельно, с transparent_background=true. Оригинальные PNG находятся в public/icons; SVG-предшественники удалены. Иконка приложения не менялась.
 
 Интерфейс использует альфа-канал этих пяти PNG как CSS-маску и общий цвет #e5bc73. Это сохраняет сгенерированную форму и одинаковый янтарный оттенок без цветных краёв. Основной размер 26 px, в дереве 24 px и во вкладках 22 px. Семь остальных PNG взяты из набора ImageGen от 27 октября.

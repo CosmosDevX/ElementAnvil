@@ -1,6 +1,7 @@
 import { icon as generatedIcon } from "./icons.js";
 const $ = (id) => document.getElementById(id);
 export function createExplorer(ctx) {
+  let focusInCode = false;
   const {
     tree,
     expanded,
@@ -40,6 +41,7 @@ export function createExplorer(ctx) {
         button.className = `ut-tree-item${item.path === ctx.currentName() ? " ut-active" : ""}${item.kind === "directory" && item.path === ctx.selectedDirectory() ? " ut-directory-selected" : ""}`;
         button.style.paddingLeft = `${10 + depth * 15}px`;
         button.setAttribute("role", "treeitem");
+        button.dataset.explorerPath = item.path;
         button.title = item.path;
         const chevron = document.createElement("span");
         chevron.className = "ut-tree-chevron";
@@ -98,7 +100,44 @@ export function createExplorer(ctx) {
             }
           };
           if (expanded.has(item.path)) render(item.path, depth + 1);
-        } else button.onclick = () => openFile(item.path).catch(report);
+        } else {
+          button.onclick = async (event) => {
+            focusInCode = event.detail > 1;
+            try {
+              await openFile(item.path);
+              // Keep keyboard focus in the tree after a single click so Delete
+              // acts on the file. Double click returns focus to the code editor.
+              if (focusInCode) {
+                ctx.focusEditor();
+                return;
+              }
+              [...list.querySelectorAll("[data-explorer-path]")]
+                .find((node) => node.dataset.explorerPath === item.path)
+                ?.focus({ preventScroll: true });
+            } catch (error) {
+              report(error);
+            }
+          };
+          button.ondblclick = () => {
+            focusInCode = true;
+            ctx.focusEditor();
+          };
+          button.onkeydown = (event) => {
+            if (
+              event.key === "Delete" &&
+              !event.repeat &&
+              !event.ctrlKey &&
+              !event.altKey &&
+              !event.shiftKey &&
+              !event.metaKey
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              fileActions.hide();
+              if (ctx.canDelete()) ctx.deleteFile(item).catch(report);
+            }
+          };
+        }
       }
     }
     render("", 0);
