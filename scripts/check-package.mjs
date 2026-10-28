@@ -83,6 +83,8 @@ try {
     "gitignore",
     "markdown",
     "json",
+    "new",
+    "close",
   ]) {
     const response = await fetch(origin + `/icons/${icon}.png`);
     assert.equal(response.status, 200);
@@ -94,6 +96,27 @@ try {
     /git-diff-dialog|⌕ Символы/,
   );
   console.log("PASS: generated icon assets and integrated Git diff workspace");
+  assert.equal(session.settings.iconPalette, "neutral");
+  for (const iconPalette of ["cyan", "mint", "violet", "neutral"]) {
+    assert.equal(
+      (await post("settings", { iconPalette })).settings.iconPalette,
+      iconPalette,
+    );
+    assert.equal(
+      (await fetch(origin + "/api/session").then((r) => r.json())).settings
+        .iconPalette,
+      iconPalette,
+    );
+  }
+  assert.equal((await fetch(origin + "/icon-palettes.js")).status, 200);
+  const monacoBundle = await fetch(
+    origin + "/vendor/vs/editor-BdtEMBbM.js",
+  ).then((r) => r.text());
+  assert.ok(monacoBundle.includes("Anvil maintained DOMPurify"));
+  assert.ok(!monacoBundle.includes('e.version="3.4.15"'));
+  console.log(
+    "PASS: packaged icon palettes persist and Monaco uses patched DOMPurify",
+  );
   assert.equal(session.settings.showHttpButton, true);
   const hiddenHttp = await post("settings", { showHttpButton: false });
   assert.equal(hiddenHttp.settings.showHttpButton, false);
@@ -321,7 +344,10 @@ try {
     operation: "references",
     position: { line: 1, character: 9 },
   });
-  assert.ok(calls.result.some((item) => item.range.start.line === 4));
+  assert.ok(
+    calls.result.some((item) => item.range.start.line === 4),
+    JSON.stringify(calls),
+  );
   for (const file of [
     "project-sync.js",
     "project-explorer.js",

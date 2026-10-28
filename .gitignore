@@ -4,3 +4,15 @@ workspace/
 *.log
 release/
 artifacts/
+# Local profiles and HTTP collections can contain paths, headers and tokens.
+/state.json
+/http-collections.json
+/unexplored.http.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.keystore

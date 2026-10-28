@@ -1,4 +1,5 @@
 import { themes } from "./themes.js";
+import { iconPalettes, iconPaletteId } from "./icon-palettes.js";
 import { WorkspaceViews } from "./workspace-views.js";
 import { diskAction, replaceDocumentText } from "./document-sync.js";
 import { installIcons, icon, fileIconName } from "./icons.js";
@@ -1184,6 +1185,7 @@ function renderSettings() {
       String(button.dataset.themeChoice === session.settings.theme),
     );
   $("font-select").value = session.settings.font;
+  $("icon-palette").value = iconPaletteId(session.settings.iconPalette);
   $("font-size").value = session.settings.fontSize;
   $("font-size-value").textContent = `${session.settings.fontSize} px`;
   $("anomalies").checked = session.settings.anomalies;
@@ -1329,11 +1331,42 @@ function bind() {
     $("settings-dialog").showModal();
     renderSettings();
   };
+  const settingsTabs = [...document.querySelectorAll("[data-settings-tab]")];
+  const selectSettingsTab = (selected) => {
+    for (const tab of settingsTabs) {
+      const active = tab === selected;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+      $(tab.getAttribute("aria-controls")).hidden = !active;
+    }
+    $("settings-dialog").scrollTop = 0;
+  };
+  settingsTabs.forEach((tab, index) => {
+    tab.onclick = () => selectSettingsTab(tab);
+    tab.onkeydown = (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+        return;
+      event.preventDefault();
+      const next =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? settingsTabs.length - 1
+            : (index +
+                (event.key === "ArrowRight" ? 1 : -1) +
+                settingsTabs.length) %
+              settingsTabs.length;
+      selectSettingsTab(settingsTabs[next]);
+      settingsTabs[next].focus();
+    };
+  });
   for (const button of document.querySelectorAll("[data-close]"))
     button.onclick = () => $(button.dataset.close).close();
   for (const button of document.querySelectorAll("[data-theme-choice]"))
     button.onclick = () => settings({ theme: button.dataset.themeChoice });
   $("font-select").onchange = () => settings({ font: $("font-select").value });
+  $("icon-palette").onchange = () =>
+    settings({ iconPalette: $("icon-palette").value });
   $("font-size").oninput = () =>
     settings({ fontSize: Number($("font-size").value) });
   $("anomalies").onchange = () =>
@@ -1604,6 +1637,21 @@ async function initialize() {
     option.textContent = font.name;
     $("font-select").append(option);
   }
+  for (const [id, palette] of Object.entries(iconPalettes)) {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = palette.name;
+    $("icon-palette").append(option);
+  }
+  for (const name of [
+    "folder",
+    "element-file",
+    "terminal",
+    "new",
+    "close",
+    "stop",
+  ])
+    $("icon-preview").append(icon(name));
   applyAppearance(monaco, editor, session.settings);
   new ElementOutline(editor, $("element-outline"));
   markdownPreview = new MarkdownPreview(

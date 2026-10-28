@@ -10,7 +10,7 @@
   user-select: none;
 }
 .ut-mono-icon {
-  background-color: #e5bc73;
+  background-color: var(--icon-color, #cbd5e1);
   mask: var(--icon-image) center / contain no-repeat;
   transform: scale(1.1);
   width: 26px;
@@ -39,7 +39,7 @@
   flex-basis: 26px;
 }
 .ut-mono-icon.ut-stop-icon {
-  background-color: #e8857b;
+  background-color: var(--icon-danger, #fda4af);
 }
 .ut-side-tabs {
   height: 62px;
@@ -82,6 +82,13 @@
   width: 30px;
   height: 30px;
   padding: 4px;
+  flex: 0 0 30px;
+  border: 0;
+  background: transparent;
+  border-radius: 4px;
+}
+.ut-terminal-toolbar button:hover:not(:disabled) {
+  background: var(--hover);
 }
 .ut-terminal-toolbar .ut-generated-icon {
   width: 20px;
@@ -97,6 +104,9 @@
 button:disabled > .ut-generated-icon {
   opacity: 0.4;
 }
-html[data-theme="enterprise"] .ut-generated-icon {
-  filter: brightness(0.62) saturate(1.3);
+.ut-icon-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 0;
 }

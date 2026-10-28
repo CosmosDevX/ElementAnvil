@@ -461,51 +461,112 @@
           ×
         </button>
       </div>
-      <label class="ut-setting-label">Тема</label>
-      <div class="ut-theme-options" id="theme-options"></div>
-      <label class="ut-setting-label" for="font-select">Шрифт редактора</label
-      ><select id="font-select"></select>
-      <div class="ut-font-preview" id="font-preview">
-        пер Ответ = 42<br />Консоль.Записать(Ответ)
+      <div
+        class="ut-settings-tabs"
+        role="tablist"
+        aria-label="Разделы настроек"
+      >
+        <button
+          id="settings-appearance-tab"
+          role="tab"
+          aria-selected="true"
+          aria-controls="settings-appearance"
+          data-settings-tab="appearance"
+        >
+          Оформление
+        </button>
+        <button
+          id="settings-editor-tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="settings-editor"
+          data-settings-tab="editor"
+          tabindex="-1"
+        >
+          Редактор
+        </button>
+        <button
+          id="settings-keys-tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="settings-keys"
+          data-settings-tab="keys"
+          tabindex="-1"
+        >
+          Горячие клавиши
+        </button>
       </div>
-      <label class="ut-setting-label" for="font-size">Размер шрифта</label>
-      <div class="ut-size-row">
-        <input
-          id="font-size"
-          type="range"
-          min="10"
-          max="28"
-          value="14"
-        /><output id="font-size-value">14 px</output>
-      </div>
-      <label class="ut-anomaly-setting"
-        ><span
-          ><strong>Отображать кнопку HTTP-клиента</strong
-          ><small>Быстрый доступ в верхней панели</small></span
-        ><input id="show-http-button" type="checkbox" role="switch"
-      /></label>
-      <label class="ut-anomaly-setting"
-        ><span
-          ><strong>Автосохранение файлов</strong
-          ><small>Сохранять изменения во время ввода</small></span
-        ><input id="auto-save" type="checkbox" role="switch"
-      /></label>
-      <label class="ut-anomaly-setting"
-        ><span
-          ><strong>Миникарта кода</strong
-          ><small>Обзор файла справа от кода</small></span
-        ><input id="minimap" type="checkbox" role="switch"
-      /></label>
-      <label class="ut-anomaly-setting"
-        ><span
-          ><strong>Режим аномалий</strong
-          ><small>Случайные появления во время работы</small></span
-        ><input id="anomalies" type="checkbox" role="switch" /></label
-      ><button id="test-anomaly" class="ut-secondary ut-hidden">
-        Проверить аномалию
-      </button>
-      <details class="ut-keybindings-settings">
-        <summary>Горячие клавиши</summary>
+      <section
+        id="settings-appearance"
+        role="tabpanel"
+        aria-labelledby="settings-appearance-tab"
+        class="ut-settings-panel"
+      >
+        <label class="ut-setting-label">Тема</label>
+        <div class="ut-theme-options" id="theme-options"></div>
+        <label class="ut-setting-label" for="icon-palette">Цвет иконок</label>
+        <select id="icon-palette" aria-describedby="icon-palette-hint"></select>
+        <div id="icon-preview" class="ut-icon-preview" aria-hidden="true"></div>
+        <p id="icon-palette-hint" class="ut-console-subtle">
+          Прозрачные иконки; оттенок адаптируется к светлой и тёмным темам.
+        </p>
+        <label class="ut-setting-label" for="font-select">Шрифт редактора</label
+        ><select id="font-select"></select>
+        <div class="ut-font-preview" id="font-preview">
+          пер Ответ = 42<br />Консоль.Записать(Ответ)
+        </div>
+        <label class="ut-setting-label" for="font-size">Размер шрифта</label>
+        <div class="ut-size-row">
+          <input
+            id="font-size"
+            type="range"
+            min="10"
+            max="28"
+            value="14"
+          /><output id="font-size-value">14 px</output>
+        </div>
+      </section>
+      <section
+        id="settings-editor"
+        role="tabpanel"
+        aria-labelledby="settings-editor-tab"
+        class="ut-settings-panel"
+        hidden
+      >
+        <label class="ut-anomaly-setting"
+          ><span
+            ><strong>Отображать кнопку HTTP-клиента</strong
+            ><small>Быстрый доступ в верхней панели</small></span
+          ><input id="show-http-button" type="checkbox" role="switch"
+        /></label>
+        <label class="ut-anomaly-setting"
+          ><span
+            ><strong>Автосохранение файлов</strong
+            ><small>Сохранять изменения во время ввода</small></span
+          ><input id="auto-save" type="checkbox" role="switch"
+        /></label>
+        <label class="ut-anomaly-setting"
+          ><span
+            ><strong>Миникарта кода</strong
+            ><small>Обзор файла справа от кода</small></span
+          ><input id="minimap" type="checkbox" role="switch"
+        /></label>
+        <label class="ut-anomaly-setting"
+          ><span
+            ><strong>Режим аномалий</strong
+            ><small>Случайные появления во время работы</small></span
+          ><input id="anomalies" type="checkbox" role="switch" /></label
+        ><button id="test-anomaly" class="ut-secondary ut-hidden">
+          Проверить аномалию
+        </button>
+      </section>
+      <section
+        id="settings-keys"
+        role="tabpanel"
+        aria-labelledby="settings-keys-tab"
+        class="ut-settings-panel"
+        hidden
+      >
         <p class="ut-console-subtle">
           Нажми на сочетание и введи новое. Backspace — отключить.
         </p>
@@ -514,7 +575,7 @@
         <button id="keybindings-reset" class="ut-secondary" type="button">
           Сбросить горячие клавиши
         </button>
-      </details>
+      </section>
       <p id="settings-save-state" class="ut-settings-save-state"></p>
       <p class="ut-version">
         Element Anvil <span id="app-version">0.6.3</span>

@@ -15,12 +15,13 @@
     "test:lsp": "node scripts/check-element-lsp.mjs",
     "test:debug": "node scripts/check-element-debug.mjs",
     "test:terminal": "node scripts/check-terminal.mjs",
+    "test:appearance": "electron scripts/check-appearance.mjs",
     "fonts": "node scripts/bundle-fonts.mjs",
     "verify:element": "node scripts/verify-element.mjs",
-    "prestart": "node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs && node node_modules/electron/install.js",
+    "prestart": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs && node node_modules/electron/install.js",
     "format": "prettier --write \"{desktop,lib,public,scripts,tests}/**/*.{mjs,js,html,css}\" server.mjs package.json README.md",
-    "prebuild:win": "node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs",
-    "prestart:web": "node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs"
+    "prebuild:win": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs",
+    "prestart:web": "node scripts/bundle-monaco.mjs && node scripts/bundle-markdown.mjs && node scripts/bundle-terminal.mjs"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
@@ -116,5 +117,8 @@
     "electron-builder": "^26.18.0",
     "prettier": "^3.9.10"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "dompurify": "$dompurify"
+  }
 }

@@ -1,4 +1,5 @@
 import { themes as palettes, themeId } from "./themes.js";
+import { iconColors } from "./icon-palettes.js";
 export const fonts = [
   { id: "jetbrains-mono", name: "JetBrains Mono", family: "JetBrains Mono" },
   { id: "fira-code", name: "Fira Code", family: "Fira Code" },
@@ -27,6 +28,8 @@ export function applyAppearance(monaco, editor, settings) {
     "accent-bg": p.accentBg,
     hover: p.line,
     selection: p.selection,
+    "icon-color": iconColors(settings.iconPalette, p.light).color,
+    "icon-danger": iconColors(settings.iconPalette, p.light).danger,
   };
   for (const [name, value] of Object.entries(variables))
     document.documentElement.style.setProperty("--" + name, value);

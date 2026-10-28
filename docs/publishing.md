@@ -19,6 +19,6 @@
 
 Контрольная сумма скачанного файла: `Get-FileHash .\ElementAnvil-0.6.3-Setup.exe -Algorithm SHA256`. Сравните результат с SHA256SUMS.txt из того же релиза.
 
-В рамках подготовки 0.6.3 видимость репозитория не меняется и GitHub Release автоматически не публикуется. Подготовлены локальные файлы и текст выпуска. Автоматические тесты не запускались по просьбе автора.
+Видимость репозитория не менялась, GitHub Release не публиковался. Результаты проверки исходников, истории, зависимостей и обновлённой локальной сборки от 28 октября 2026 года приведены в [publication-audit.md](publication-audit.md). Кандидаты находятся отдельно в `release/candidate-0.6.3/`; прежние файлы `release/` не заменялись.
 
 Официальные справки: [лицензия репозитория](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository), [MIT](https://choosealicense.com/licenses/mit/), [создание релизов](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).

@@ -1,4 +1,4 @@
-// Matching ImageGen alpha masks share the exact folder amber in every UI.
+// Transparent alpha masks use the selected palette across the interface.
 export function icon(name) {
   const monochrome = [
     "folder",
